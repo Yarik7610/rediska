@@ -1,14 +1,24 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"net"
+	"strings"
 )
 
 func handleClient(conn net.Conn) {
 	defer conn.Close()
 
-	conn.Write([]byte("+PONG\r\n"))
+	scanner := bufio.NewScanner(conn)
+
+	for scanner.Scan() {
+		text := scanner.Text()
+		if strings.TrimSpace(text) == "PING" {
+			conn.Write([]byte("+PONG\r\n"))
+		}
+	}
+
 }
 
 func main() {
