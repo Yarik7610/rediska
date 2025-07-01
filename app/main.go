@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"flag"
+	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -22,9 +24,13 @@ func handleClient(conn net.Conn) {
 }
 
 func main() {
-	listener, err := net.Listen("tcp", "0.0.0.0:6379")
+	port := flag.Int("port", 6379, "The port of redis server")
+	flag.Parse()
+
+	address := fmt.Sprintf("0.0.0.0:%d", *port)
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		log.Fatalln("Failed to bind to '0.0.0.0:6379'")
+		log.Fatalf("Failed to bind to adress %s\n", address)
 	}
 	defer listener.Close()
 
