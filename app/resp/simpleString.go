@@ -25,14 +25,10 @@ func (simpleString) Decode(b []byte) (string, error) {
 		return "", fmt.Errorf("simple string decode error: didn't find '+' sign")
 	}
 
-	for i := range b {
-		if b[i] == '\r' {
-			if i+1 < l && b[i+1] == '\n' {
-				return string(b[1:i]), nil
-			}
-			return "", fmt.Errorf("simple string decode error: wrong char: %q after '\\r'", b[i+1])
-		}
+	res, err := parseTillFirstCRLF(b, l)
+	if err != nil {
+		return "", fmt.Errorf("simple string decode error: %v", err)
 	}
 
-	return "", fmt.Errorf("simple string decode error: didn't find '\\r\\n' in the end")
+	return res, nil
 }

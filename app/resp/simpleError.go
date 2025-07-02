@@ -11,15 +11,19 @@ func (simpleError) Encode(msg string) []byte {
 }
 
 func (simpleError) Decode(b []byte) (string, error) {
+	l := len(b)
+	if l == 0 {
+		return "", fmt.Errorf("simple error decode error: expected not fully empty string")
+	}
+
 	if b[0] != '-' {
 		return "", fmt.Errorf("simple error decode error: didn't find '-' sign")
 	}
 
-	l := len(b)
-	err := requireEndingCRLF(b)
+	res, err := parseTillFirstCRLF(b, l)
 	if err != nil {
 		return "", fmt.Errorf("simple error decode error: %v", err)
 	}
 
-	return string(b[1 : l-2]), nil
+	return res, nil
 }
