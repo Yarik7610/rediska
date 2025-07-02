@@ -1,8 +1,8 @@
 package resp
 
-type RESP struct {
-	simpleString simpleString
-	simpleError  simpleError
-	integer      integer
-	bulkString   bulkString
+type RESPController struct {
+	SimpleString simpleString
+	SimpleError  simpleError
+	Integer      integer
+	BulkString   bulkString
 }
