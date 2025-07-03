@@ -36,7 +36,7 @@ func traverseExpectedLen(b []byte) (int, []byte, error) {
 	return expectedLenInt, b[len(expectedLen):], nil
 }
 
-func traverseCRLF(b []byte) ([]byte, error ) {
+func traverseCRLF(b []byte) ([]byte, error) {
 	if len(b) >= 2 && b[0] == '\r' && b[1] == '\n' {
 		return b[2:], nil
 	}

@@ -5,4 +5,10 @@ type RESPController struct {
 	SimpleError  simpleError
 	Integer      integer
 	BulkString   bulkString
+	Array        array
+}
+
+type Value interface {
+	Encode() ([]byte, error)
+	Decode([]byte) (Value, error)
 }

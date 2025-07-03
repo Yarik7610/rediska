@@ -4,18 +4,20 @@ import (
 	"fmt"
 )
 
-type bulkString struct{}
-
-func (bulkString) Encode(strPtr *string) []byte {
-	if strPtr == nil {
-		return []byte(NULL_RESP_2)
-	}
-
-	l := len(*strPtr)
-	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", l, *strPtr))
+type bulkString struct {
+	value *string
 }
 
-func (bulkString) Decode(b []byte) (*string, error) {
+func (bs bulkString) Encode() ([]byte, error) {
+	if bs.value == nil {
+		return []byte(NULL_RESP_2), nil
+	}
+
+	l := len(*bs.value)
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", l, *bs.value)), nil
+}
+
+func (bulkString) Decode(b []byte) (Value, error) {
 	l := len(b)
 	if l == 0 {
 		return nil, fmt.Errorf("bulk string decode error: expected not fully empty string")
@@ -38,7 +40,7 @@ func (bulkString) Decode(b []byte) (*string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("bulk string traverse CRLF error: %v", err)
 	}
-	
+
 	err = requireEndingCRLF(b)
 	if err != nil {
 		return nil, fmt.Errorf("bulk string decode error: %v", err)
@@ -50,5 +52,5 @@ func (bulkString) Decode(b []byte) (*string, error) {
 	}
 
 	res := string(b[:expectedLen])
-	return &res, nil
+	return bulkString{value: &res}, nil
 }

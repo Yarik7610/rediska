@@ -5,31 +5,33 @@ import (
 	"strconv"
 )
 
-type integer struct{}
-
-func (integer) Encode(num int) []byte {
-  return []byte(fmt.Sprintf(":%d\r\n", num))
+type integer struct {
+	value int
 }
 
-func (integer) Decode(b []byte) (int, error) {
-  l := len(b)
-  if l == 0 {
-    return 0, fmt.Errorf("integer decode error: expected not fully empty string")
-  }
+func (i integer) Encode() ([]byte, error) {
+	return []byte(fmt.Sprintf(":%d\r\n", i.value)), nil
+}
 
-  if b[0] != ':' {
-    return 0, fmt.Errorf("integer decode error: didn't find ':' sign")
-  }
+func (integer) Decode(b []byte) (Value, error) {
+	l := len(b)
+	if l == 0 {
+		return nil, fmt.Errorf("integer decode error: expected not fully empty string")
+	}
 
-  payload, err := traversePayloadTillFirstCRLF(b, l)
-  if err != nil {
-    return 0, fmt.Errorf("integer decode error: %v", err)
-  }
+	if b[0] != ':' {
+		return nil, fmt.Errorf("integer decode error: didn't find ':' sign")
+	}
 
-  intVal, err := strconv.Atoi(payload)
-  if err != nil {
-    return 0, fmt.Errorf("integer decode atoi error: %v", err)
-  }
+	payload, err := traversePayloadTillFirstCRLF(b, l)
+	if err != nil {
+		return nil, fmt.Errorf("integer decode error: %v", err)
+	}
 
-  return intVal, nil
+	intVal, err := strconv.Atoi(payload)
+	if err != nil {
+		return nil, fmt.Errorf("integer decode atoi error: %v", err)
+	}
+
+	return integer{value: intVal}, nil
 }

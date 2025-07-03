@@ -4,26 +4,28 @@ import (
 	"fmt"
 )
 
-type simpleError struct{}
-
-func (simpleError) Encode(msg string) []byte {
-	return []byte(fmt.Sprintf("-%s\r\n", msg))
+type simpleError struct {
+	value string
 }
 
-func (simpleError) Decode(b []byte) (string, error) {
+func (se simpleError) Encode() ([]byte, error) {
+	return []byte(fmt.Sprintf("-%s\r\n", se.value)), nil
+}
+
+func (simpleError) Decode(b []byte) (Value, error) {
 	l := len(b)
 	if l == 0 {
-		return "", fmt.Errorf("simple error decode error: expected not fully empty string")
+		return nil, fmt.Errorf("simple error decode error: expected not fully empty string")
 	}
 
 	if b[0] != '-' {
-		return "", fmt.Errorf("simple error decode error: didn't find '-' sign")
+		return nil, fmt.Errorf("simple error decode error: didn't find '-' sign")
 	}
 
 	res, err := traversePayloadTillFirstCRLF(b, l)
 	if err != nil {
-		return "", fmt.Errorf("simple error decode error: %v", err)
+		return nil, fmt.Errorf("simple error decode error: %v", err)
 	}
 
-	return res, nil
+	return simpleError{value: res}, nil
 }

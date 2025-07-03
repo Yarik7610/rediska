@@ -5,30 +5,32 @@ import (
 	"strings"
 )
 
-type simpleString struct{}
+type simpleString struct {
+	value string
+}
 
-func (simpleString) Encode(str string) ([]byte, error) {
-	if strings.Contains(str, "\r") || strings.Contains(str, "\n") {
+func (ss simpleString) Encode() ([]byte, error) {
+	if strings.Contains(ss.value, "\r") || strings.Contains(ss.value, "\n") {
 		return nil, fmt.Errorf("simple string encode error: can't have '\\r' or '\\n' char in the payload")
 	}
 
-	return []byte(fmt.Sprintf("+%s\r\n", str)), nil
+	return []byte(fmt.Sprintf("+%s\r\n", ss.value)), nil
 }
 
-func (simpleString) Decode(b []byte) (string, error) {
+func (simpleString) Decode(b []byte) (Value, error) {
 	l := len(b)
 	if l == 0 {
-		return "", fmt.Errorf("simple string decode error: expected not fully empty string")
+		return nil, fmt.Errorf("simple string decode error: expected not fully empty string")
 	}
 
 	if b[0] != '+' {
-		return "", fmt.Errorf("simple string decode error: didn't find '+' sign")
+		return nil, fmt.Errorf("simple string decode error: didn't find '+' sign")
 	}
 
 	res, err := traversePayloadTillFirstCRLF(b, l)
 	if err != nil {
-		return "", fmt.Errorf("simple string decode error: %v", err)
+		return nil, fmt.Errorf("simple string decode error: %v", err)
 	}
 
-	return res, nil
+	return simpleString{value: res}, nil
 }
