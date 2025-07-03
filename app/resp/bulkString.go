@@ -2,41 +2,53 @@ package resp
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type bulkString struct{}
 
-func (bulkString) Encode(str string) []byte {
-	l := len(str)
-	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", l, str))
+func (bulkString) Encode(strPtr *string) []byte {
+	if strPtr == nil {
+		return []byte(NULL_RESP_2)
+	}
+
+	l := len(*strPtr)
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", l, *strPtr))
 }
 
-func (bulkString) Decode(b []byte) (string, error) {
+func (bulkString) Decode(b []byte) (*string, error) {
+	l := len(b)
+	if l == 0 {
+		return nil, fmt.Errorf("bulk string decode error: expected not fully empty string")
+	}
+
+	if string(b) == NULL_RESP_2 {
+		return nil, nil
+	}
+
 	if b[0] != '$' {
-		return "", fmt.Errorf("bulk string decode error: didn't find '$' sign")
+		return nil, fmt.Errorf("bulk string decode error: didn't find '$' sign")
 	}
-	b = b[1:]
 
-	bulkStringLen := make([]byte, 0)
-	for i := range b {
-		if b[i] == '\r' && i+1 < len(b) && b[i+1] == '\n' {
-			break
-		}
-		bulkStringLen = append(bulkStringLen, b[i])
-	}
-	b = b[len(bulkStringLen)+2:]
-
-	bulkStringLenInt, err := strconv.Atoi(string(bulkStringLen))
+	expectedLen, b, err := traverseExpectedLen(b[1:])
 	if err != nil {
-		return "", fmt.Errorf("bulk string len decode atoi error: %v", err)
+		return nil, fmt.Errorf("bulk string parse expected len error: %v", err)
 	}
 
+	b, err = traverseCRLF(b)
+	if err != nil {
+		return nil, fmt.Errorf("bulk string traverse CRLF error: %v", err)
+	}
+	
 	err = requireEndingCRLF(b)
 	if err != nil {
-		return "", fmt.Errorf("bulk string decode error: %v", err)
+		return nil, fmt.Errorf("bulk string decode error: %v", err)
 	}
 
-	return string(b[:bulkStringLenInt]), nil
+	outLen := len(b) - 2
+	if expectedLen != outLen {
+		return nil, fmt.Errorf("bulk string decode error: expected len (%d) != out len (%d)", expectedLen, outLen)
+	}
 
+	res := string(b[:expectedLen])
+	return &res, nil
 }

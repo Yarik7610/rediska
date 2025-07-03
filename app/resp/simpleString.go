@@ -25,7 +25,7 @@ func (simpleString) Decode(b []byte) (string, error) {
 		return "", fmt.Errorf("simple string decode error: didn't find '+' sign")
 	}
 
-	res, err := parseTillFirstCRLF(b, l)
+	res, err := traversePayloadTillFirstCRLF(b, l)
 	if err != nil {
 		return "", fmt.Errorf("simple string decode error: %v", err)
 	}

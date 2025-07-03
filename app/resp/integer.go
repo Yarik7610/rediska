@@ -21,7 +21,7 @@ func (integer) Decode(b []byte) (int, error) {
     return 0, fmt.Errorf("integer decode error: didn't find ':' sign")
   }
 
-  payload, err := parseTillFirstCRLF(b, l)
+  payload, err := traversePayloadTillFirstCRLF(b, l)
   if err != nil {
     return 0, fmt.Errorf("integer decode error: %v", err)
   }
