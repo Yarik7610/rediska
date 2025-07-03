@@ -7,30 +7,29 @@ import (
 
 type integer struct{}
 
-func (integer) Encode(str string) ([]byte, error) {
-	intVal, err := strconv.Atoi(str)
-	if err != nil {
-		return nil, fmt.Errorf("integer encode atoi error: %v", err)
-	}
-
-	return []byte(fmt.Sprintf(":%d\r\n", intVal)), nil
+func (integer) Encode(num int) []byte {
+  return []byte(fmt.Sprintf(":%d\r\n", num))
 }
 
-func (integer) Decode(b []byte) (string, error) {
-	if b[0] != ':' {
-		return "", fmt.Errorf("integer decode error: didn't find ':' sign")
-	}
+func (integer) Decode(b []byte) (int, error) {
+  l := len(b)
+  if l == 0 {
+    return 0, fmt.Errorf("integer decode error: expected not fully empty string")
+  }
 
-	l := len(b)
-	err := requireEndingCRLF(b)
-	if err != nil {
-		return "", fmt.Errorf("integer decode error: %v", err)
-	}
+  if b[0] != ':' {
+    return 0, fmt.Errorf("integer decode error: didn't find ':' sign")
+  }
 
-	intVal, err := strconv.Atoi(string(b[1 : l-2]))
-	if err != nil {
-		return "", fmt.Errorf("integer decode atoi error: %v", err)
-	}
+  payload, err := parseTillFirstCRLF(b, l)
+  if err != nil {
+    return 0, fmt.Errorf("integer decode error: %v", err)
+  }
 
-	return strconv.FormatInt(int64(intVal), 10), nil
+  intVal, err := strconv.Atoi(payload)
+  if err != nil {
+    return 0, fmt.Errorf("integer decode atoi error: %v", err)
+  }
+
+  return intVal, nil
 }
