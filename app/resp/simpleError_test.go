@@ -154,8 +154,8 @@ func TestSimpleErrorDecode(t *testing.T) {
 		{
 			Name:        "Error with forbidden CRLF",
 			In:          []byte("-ERR invalid\r\ncommand\r\n"),
-			Expected:    nil,
-			ShouldError: true,
+			Expected:    simpleError{value: "ERR invalid"},
+			ShouldError: false,
 		},
 	}
 

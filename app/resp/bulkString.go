@@ -24,7 +24,7 @@ func (bulkString) Decode(b []byte) (Value, error) {
 	}
 
 	if string(b) == NULL_RESP_2 {
-		return nil, nil
+		return bulkString{value: nil}, nil
 	}
 
 	if b[0] != '$' {

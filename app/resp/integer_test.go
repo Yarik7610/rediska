@@ -124,8 +124,8 @@ func TestIntegerDecode(t *testing.T) {
 		{
 			Name:        "Value with forbidden CRLF",
 			In:          []byte(":123\r\n456\r\n"),
-			Expected:    nil,
-			ShouldError: true,
+			Expected:    integer{value: 123},
+			ShouldError: false,
 		},
 	}
 

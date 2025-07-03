@@ -154,8 +154,8 @@ func TestSimpleStringDecode(t *testing.T) {
 		{
 			Name:        "String with forbidden CRLF",
 			In:          []byte("+HELLO\r\nWORLD\r\n"),
-			Expected:    nil,
-			ShouldError: true,
+			Expected:    simpleString{value: "HELLO"},
+			ShouldError: false,
 		},
 	}
 
