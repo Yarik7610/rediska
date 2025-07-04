@@ -28,7 +28,7 @@ func TestBulkStringEncode(t *testing.T) {
 		{
 			Name:        "Nil string",
 			In:          bulkString{value: nil},
-			Expected:    []byte(NULL_RESP_2),
+			Expected:    []byte(NULL_BULK_STRING_RESP_2),
 			ShouldError: false,
 		},
 		{
@@ -111,7 +111,7 @@ func TestBulkStringDecode(t *testing.T) {
 		},
 		{
 			Name:        "Nil string",
-			In:          []byte(NULL_RESP_2),
+			In:          []byte(NULL_BULK_STRING_RESP_2),
 			Expected:    bulkString{value: nil},
 			ShouldError: false,
 		},
@@ -203,8 +203,4 @@ func TestBulkStringDecode(t *testing.T) {
 			}
 		})
 	}
-}
-
-func stringPtr(s string) *string {
-	return &s
 }

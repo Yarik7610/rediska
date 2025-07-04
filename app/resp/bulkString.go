@@ -10,7 +10,7 @@ type bulkString struct {
 
 func (bs bulkString) Encode() ([]byte, error) {
 	if bs.value == nil {
-		return []byte(NULL_RESP_2), nil
+		return []byte(NULL_BULK_STRING_RESP_2), nil
 	}
 
 	l := len(*bs.value)
@@ -23,8 +23,8 @@ func (bulkString) Decode(b []byte) ([]byte, Value, error) {
 		return nil, nil, fmt.Errorf("bulk string decode error: expected not fully empty string")
 	}
 
-	if string(b) == NULL_RESP_2 {
-		return b[len(NULL_RESP_2):], bulkString{value: nil}, nil
+	if string(b) == NULL_BULK_STRING_RESP_2 {
+		return b[len(NULL_BULK_STRING_RESP_2):], bulkString{value: nil}, nil
 	}
 
 	if b[0] != '$' {
@@ -41,14 +41,12 @@ func (bulkString) Decode(b []byte) ([]byte, Value, error) {
 		return nil, nil, fmt.Errorf("bulk string traverse CRLF error: %v", err)
 	}
 
-	err = requireEndingCRLF(b)
-	if err != nil {
-		return nil, nil, fmt.Errorf("bulk string decode error: %v", err)
+	if len(b) < expectedLen+2 {
+		return nil, nil, fmt.Errorf("bulk string decode error: not enough bytes for content (%d < %d)", len(b), expectedLen+2)
 	}
 
-	outLen := len(b) - 2
-	if expectedLen != outLen {
-		return nil, nil, fmt.Errorf("bulk string decode error: expected len (%d) != out len (%d)", expectedLen, outLen)
+	if err = requireEndingCRLF(b[expectedLen : expectedLen+2]); err != nil {
+		return nil, nil, fmt.Errorf("bulk string decode error: %v", err)
 	}
 
 	res := string(b[:expectedLen])

@@ -9,7 +9,7 @@ func traversePayloadTillFirstCRLF(b []byte, l int) ([]byte, string, error) {
 	for i := range b {
 		if b[i] == '\r' {
 			if i+1 < l && b[i+1] == '\n' {
-				return b[i+1:], string(b[1:i]), nil
+				return b[i+2:], string(b[1:i]), nil
 			}
 			return nil, "", fmt.Errorf("wrong char: %q after '\\r'", b[i+1])
 		}

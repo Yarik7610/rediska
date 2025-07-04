@@ -10,6 +10,10 @@ type array struct {
 }
 
 func (a array) Encode() ([]byte, error) {
+	if a.value == nil {
+		return []byte(NULL_ARRAY_RESP_2), nil
+	}
+
 	var b bytes.Buffer
 
 	l := len(a.value)
@@ -20,7 +24,7 @@ func (a array) Encode() ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("array encode error: %v", err)
 		}
-		b.WriteString(fmt.Sprintf("%s\r\n", encodedVal))
+		b.WriteString(string(encodedVal))
 	}
 
 	return b.Bytes(), nil
@@ -32,7 +36,7 @@ func (array) Decode(b []byte) ([]byte, Value, error) {
 		return nil, nil, fmt.Errorf("array decode error: expected not fully empty string")
 	}
 
-	if string(b) == NULL_RESP_2 {
+	if string(b) == NULL_ARRAY_RESP_2 {
 		return b[0:0], array{value: nil}, nil
 	}
 
@@ -40,11 +44,20 @@ func (array) Decode(b []byte) ([]byte, Value, error) {
 		return nil, nil, fmt.Errorf("array decode error: didn't find '$' sign")
 	}
 
-	res := make([]Value, 0)
-	var curVal Value
-	var err error
+	resLen, b, err := traverseExpectedLen(b[1:])
+	if err != nil {
+		return nil, nil, fmt.Errorf("array decode error: %v", err)
+	}
 
-	for {
+	b, err = traverseCRLF(b)
+	if err != nil {
+		return nil, nil, fmt.Errorf("bulk string traverse CRLF error: %v", err)
+	}
+
+	res := make([]Value, 0, resLen)
+	var curVal Value
+
+	for range resLen {
 		switch b[0] {
 		case '*':
 			b, curVal, err = resp.Array.Decode(b)
@@ -64,11 +77,7 @@ func (array) Decode(b []byte) ([]byte, Value, error) {
 			return nil, nil, fmt.Errorf("array decode error: %v", err)
 		}
 		res = append(res, curVal)
-
-		if len(b) == 0 {
-			break
-		}
 	}
 
-	return b[0:0], array{value: res}, nil
+	return b, array{value: res}, nil
 }
