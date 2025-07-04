@@ -191,8 +191,8 @@ func TestBulkStringDecode(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			resp := bulkString{}
-			out, err := resp.Decode(test.In)
+			bs := bulkString{}
+			_, out, err := bs.Decode(test.In)
 
 			if test.ShouldError {
 				assert.NotNil(t, err)

@@ -131,8 +131,8 @@ func TestIntegerDecode(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			resp := integer{}
-			out, err := resp.Decode(test.In)
+			i := integer{}
+			_, out, err := i.Decode(test.In)
 
 			if test.ShouldError {
 				assert.NotNil(t, err)

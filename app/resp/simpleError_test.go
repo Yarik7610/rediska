@@ -161,8 +161,8 @@ func TestSimpleErrorDecode(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			resp := simpleError{}
-			out, err := resp.Decode(test.In)
+			se := simpleError{}
+			_, out, err := se.Decode(test.In)
 
 			if test.ShouldError {
 				assert.NotNil(t, err)

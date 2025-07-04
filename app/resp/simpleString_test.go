@@ -161,8 +161,8 @@ func TestSimpleStringDecode(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			resp := simpleString{}
-			out, err := resp.Decode(test.In)
+			ss := simpleString{}
+			_, out, err := ss.Decode(test.In)
 
 			if test.ShouldError {
 				assert.NotNil(t, err)
