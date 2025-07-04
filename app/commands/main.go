@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
@@ -39,9 +40,12 @@ func handleArrayCommand(unit resp.Array) resp.Value {
 	}
 
 	command := commandAndArgs[0]
-	switch command {
+
+	switch strings.ToUpper(command) {
 	case "PING":
-		return resp.SimpleString{Value: "PONG"}
+		return Ping()
+	case "ECHO":
+		return Echo(commandAndArgs[1:])
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
