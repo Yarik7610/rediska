@@ -1,26 +1,40 @@
 package main
 
 import (
-	"bufio"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
-	"strings"
+
+	"github.com/codecrafters-io/redis-starter-go/app/commands"
+	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
 func handleClient(conn net.Conn) {
 	defer conn.Close()
 
-	scanner := bufio.NewScanner(conn)
+	for {
+		b := make([]byte, 1024)
 
-	for scanner.Scan() {
-		row := scanner.Text()
-		if strings.TrimSpace(row) == "PING" {
-			conn.Write([]byte("+PONG\r\n"))
+		n, err := conn.Read(b)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return
+			}
+			log.Printf("Connnection read error: %v", err)
+			return
 		}
-	}
 
+		value, err := resp.Controller.Decode(b[:n])
+		if err != nil {
+			fmt.Fprintf(conn, "RESP controller decode error: %v\n", err)
+			continue
+		}
+
+		commands.HandleCommand(conn, value)
+	}
 }
 
 func main() {

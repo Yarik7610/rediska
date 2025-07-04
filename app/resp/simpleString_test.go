@@ -15,49 +15,49 @@ func TestSimpleStringEncode(t *testing.T) {
 	}{
 		{
 			Name:        "Simple usual string",
-			In:          simpleString{value: "PONG"},
+			In:          SimpleString{Value: "PONG"},
 			Expected:    []byte("+PONG\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Empty string",
-			In:          simpleString{value: ""},
+			In:          SimpleString{Value: ""},
 			Expected:    []byte("+\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "String with spaces",
-			In:          simpleString{value: "HELLO WORLD"},
+			In:          SimpleString{Value: "HELLO WORLD"},
 			Expected:    []byte("+HELLO WORLD\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "String with special characters",
-			In:          simpleString{value: "OK!@#$%"},
+			In:          SimpleString{Value: "OK!@#$%"},
 			Expected:    []byte("+OK!@#$%\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Single character",
-			In:          simpleString{value: "A"},
+			In:          SimpleString{Value: "A"},
 			Expected:    []byte("+A\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "String with numbers",
-			In:          simpleString{value: "12345"},
+			In:          SimpleString{Value: "12345"},
 			Expected:    []byte("+12345\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "String with tab",
-			In:          simpleString{value: "HELLO\tWORLD"},
+			In:          SimpleString{Value: "HELLO\tWORLD"},
 			Expected:    []byte("+HELLO\tWORLD\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Long string",
-			In:          simpleString{value: "This is a very long string to test encoding with more than a few characters"},
+			In:          SimpleString{Value: "This is a very long string to test encoding with more than a few characters"},
 			Expected:    []byte("+This is a very long string to test encoding with more than a few characters\r\n"),
 			ShouldError: false,
 		},
@@ -88,49 +88,49 @@ func TestSimpleStringDecode(t *testing.T) {
 		{
 			Name:        "Simple usual string",
 			In:          []byte("+PONG\r\n"),
-			Expected:    simpleString{value: "PONG"},
+			Expected:    SimpleString{Value: "PONG"},
 			ShouldError: false,
 		},
 		{
 			Name:        "Empty string",
 			In:          []byte("+\r\n"),
-			Expected:    simpleString{value: ""},
+			Expected:    SimpleString{Value: ""},
 			ShouldError: false,
 		},
 		{
 			Name:        "String with spaces",
 			In:          []byte("+HELLO WORLD\r\n"),
-			Expected:    simpleString{value: "HELLO WORLD"},
+			Expected:    SimpleString{Value: "HELLO WORLD"},
 			ShouldError: false,
 		},
 		{
 			Name:        "String with special characters",
 			In:          []byte("+OK!@#$%\r\n"),
-			Expected:    simpleString{value: "OK!@#$%"},
+			Expected:    SimpleString{Value: "OK!@#$%"},
 			ShouldError: false,
 		},
 		{
 			Name:        "Single character",
 			In:          []byte("+A\r\n"),
-			Expected:    simpleString{value: "A"},
+			Expected:    SimpleString{Value: "A"},
 			ShouldError: false,
 		},
 		{
 			Name:        "String with numbers",
 			In:          []byte("+12345\r\n"),
-			Expected:    simpleString{value: "12345"},
+			Expected:    SimpleString{Value: "12345"},
 			ShouldError: false,
 		},
 		{
 			Name:        "String with tab",
 			In:          []byte("+HELLO\tWORLD\r\n"),
-			Expected:    simpleString{value: "HELLO\tWORLD"},
+			Expected:    SimpleString{Value: "HELLO\tWORLD"},
 			ShouldError: false,
 		},
 		{
 			Name:        "Long string",
 			In:          []byte("+This is a very long string to test decoding with more than a few characters\r\n"),
-			Expected:    simpleString{value: "This is a very long string to test decoding with more than a few characters"},
+			Expected:    SimpleString{Value: "This is a very long string to test decoding with more than a few characters"},
 			ShouldError: false,
 		},
 		{
@@ -154,14 +154,14 @@ func TestSimpleStringDecode(t *testing.T) {
 		{
 			Name:        "String with forbidden CRLF",
 			In:          []byte("+HELLO\r\nWORLD\r\n"),
-			Expected:    simpleString{value: "HELLO"},
+			Expected:    SimpleString{Value: "HELLO"},
 			ShouldError: false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			ss := simpleString{}
+			ss := SimpleString{}
 			_, out, err := ss.Decode(test.In)
 
 			if test.ShouldError {

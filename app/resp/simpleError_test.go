@@ -15,49 +15,49 @@ func TestSimpleErrorEncode(t *testing.T) {
 	}{
 		{
 			Name:        "Simple error",
-			In:          simpleError{value: "ERR invalid command"},
+			In:          SimpleError{Value: "ERR invalid command"},
 			Expected:    []byte("-ERR invalid command\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Empty error",
-			In:          simpleError{value: ""},
+			In:          SimpleError{Value: ""},
 			Expected:    []byte("-\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Error with spaces",
-			In:          simpleError{value: "ERR syntax error"},
+			In:          SimpleError{Value: "ERR syntax error"},
 			Expected:    []byte("-ERR syntax error\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Error with special characters",
-			In:          simpleError{value: "ERR!@#$%"},
+			In:          SimpleError{Value: "ERR!@#$%"},
 			Expected:    []byte("-ERR!@#$%\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Single character error",
-			In:          simpleError{value: "E"},
+			In:          SimpleError{Value: "E"},
 			Expected:    []byte("-E\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Error with numbers",
-			In:          simpleError{value: "ERR 404"},
+			In:          SimpleError{Value: "ERR 404"},
 			Expected:    []byte("-ERR 404\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Error with tab",
-			In:          simpleError{value: "ERR\tinvalid"},
+			In:          SimpleError{Value: "ERR\tinvalid"},
 			Expected:    []byte("-ERR\tinvalid\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Long error",
-			In:          simpleError{value: "ERR This is a very long error message to test encoding with more than a few characters"},
+			In:          SimpleError{Value: "ERR This is a very long error message to test encoding with more than a few characters"},
 			Expected:    []byte("-ERR This is a very long error message to test encoding with more than a few characters\r\n"),
 			ShouldError: false,
 		},
@@ -88,49 +88,49 @@ func TestSimpleErrorDecode(t *testing.T) {
 		{
 			Name:        "Simple error",
 			In:          []byte("-ERR invalid command\r\n"),
-			Expected:    simpleError{value: "ERR invalid command"},
+			Expected:    SimpleError{Value: "ERR invalid command"},
 			ShouldError: false,
 		},
 		{
 			Name:        "Empty error",
 			In:          []byte("-\r\n"),
-			Expected:    simpleError{value: ""},
+			Expected:    SimpleError{Value: ""},
 			ShouldError: false,
 		},
 		{
 			Name:        "Error with spaces",
 			In:          []byte("-ERR syntax error\r\n"),
-			Expected:    simpleError{value: "ERR syntax error"},
+			Expected:    SimpleError{Value: "ERR syntax error"},
 			ShouldError: false,
 		},
 		{
 			Name:        "Error with special characters",
 			In:          []byte("-ERR!@#$%\r\n"),
-			Expected:    simpleError{value: "ERR!@#$%"},
+			Expected:    SimpleError{Value: "ERR!@#$%"},
 			ShouldError: false,
 		},
 		{
 			Name:        "Single character error",
 			In:          []byte("-E\r\n"),
-			Expected:    simpleError{value: "E"},
+			Expected:    SimpleError{Value: "E"},
 			ShouldError: false,
 		},
 		{
 			Name:        "Error with numbers",
 			In:          []byte("-ERR 404\r\n"),
-			Expected:    simpleError{value: "ERR 404"},
+			Expected:    SimpleError{Value: "ERR 404"},
 			ShouldError: false,
 		},
 		{
 			Name:        "Error with tab",
 			In:          []byte("-ERR\tinvalid\r\n"),
-			Expected:    simpleError{value: "ERR\tinvalid"},
+			Expected:    SimpleError{Value: "ERR\tinvalid"},
 			ShouldError: false,
 		},
 		{
 			Name:        "Long error",
 			In:          []byte("-ERR This is a very long error message to test decoding with more than a few characters\r\n"),
-			Expected:    simpleError{value: "ERR This is a very long error message to test decoding with more than a few characters"},
+			Expected:    SimpleError{Value: "ERR This is a very long error message to test decoding with more than a few characters"},
 			ShouldError: false,
 		},
 		{
@@ -154,14 +154,14 @@ func TestSimpleErrorDecode(t *testing.T) {
 		{
 			Name:        "Error with forbidden CRLF",
 			In:          []byte("-ERR invalid\r\ncommand\r\n"),
-			Expected:    simpleError{value: "ERR invalid"},
+			Expected:    SimpleError{Value: "ERR invalid"},
 			ShouldError: false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			se := simpleError{}
+			se := SimpleError{}
 			_, out, err := se.Decode(test.In)
 
 			if test.ShouldError {

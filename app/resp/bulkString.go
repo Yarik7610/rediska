@@ -4,27 +4,27 @@ import (
 	"fmt"
 )
 
-type bulkString struct {
-	value *string
+type BulkString struct {
+	Value *string
 }
 
-func (bs bulkString) Encode() ([]byte, error) {
-	if bs.value == nil {
+func (bs BulkString) Encode() ([]byte, error) {
+	if bs.Value == nil {
 		return []byte(NULL_BULK_STRING_RESP_2), nil
 	}
 
-	l := len(*bs.value)
-	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", l, *bs.value)), nil
+	l := len(*bs.Value)
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", l, *bs.Value)), nil
 }
 
-func (bulkString) Decode(b []byte) ([]byte, Value, error) {
+func (BulkString) Decode(b []byte) ([]byte, Value, error) {
 	l := len(b)
 	if l == 0 {
 		return nil, nil, fmt.Errorf("bulk string decode error: expected not fully empty string")
 	}
 
 	if string(b) == NULL_BULK_STRING_RESP_2 {
-		return b[len(NULL_BULK_STRING_RESP_2):], bulkString{value: nil}, nil
+		return b[len(NULL_BULK_STRING_RESP_2):], BulkString{Value: nil}, nil
 	}
 
 	if b[0] != '$' {
@@ -50,5 +50,5 @@ func (bulkString) Decode(b []byte) ([]byte, Value, error) {
 	}
 
 	res := string(b[:expectedLen])
-	return b[expectedLen+2:], bulkString{value: &res}, nil
+	return b[expectedLen+2:], BulkString{Value: &res}, nil
 }

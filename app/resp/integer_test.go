@@ -14,32 +14,32 @@ func TestIntegerEncode(t *testing.T) {
 		ShouldError bool
 	}{
 		{
-			Name:        "Positive integer",
-			In:          integer{value: 123},
+			Name:        "Positive Integer",
+			In:          Integer{Value: 123},
 			Expected:    []byte(":123\r\n"),
 			ShouldError: false,
 		},
 		{
-			Name:        "Negative integer",
-			In:          integer{value: -456},
+			Name:        "Negative Integer",
+			In:          Integer{Value: -456},
 			Expected:    []byte(":-456\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Zero",
-			In:          integer{value: 0},
+			In:          Integer{Value: 0},
 			Expected:    []byte(":0\r\n"),
 			ShouldError: false,
 		},
 		{
-			Name:        "Large positive integer",
-			In:          integer{value: 1234567890},
+			Name:        "Large positive Integer",
+			In:          Integer{Value: 1234567890},
 			Expected:    []byte(":1234567890\r\n"),
 			ShouldError: false,
 		},
 		{
-			Name:        "Large negative integer",
-			In:          integer{value: -987654321},
+			Name:        "Large negative Integer",
+			In:          Integer{Value: -987654321},
 			Expected:    []byte(":-987654321\r\n"),
 			ShouldError: false,
 		},
@@ -68,33 +68,33 @@ func TestIntegerDecode(t *testing.T) {
 		ShouldError bool
 	}{
 		{
-			Name:        "Positive integer",
+			Name:        "Positive Integer",
 			In:          []byte(":123\r\n"),
-			Expected:    integer{value: 123},
+			Expected:    Integer{Value: 123},
 			ShouldError: false,
 		},
 		{
-			Name:        "Negative integer",
+			Name:        "Negative Integer",
 			In:          []byte(":-456\r\n"),
-			Expected:    integer{value: -456},
+			Expected:    Integer{Value: -456},
 			ShouldError: false,
 		},
 		{
 			Name:        "Zero",
 			In:          []byte(":0\r\n"),
-			Expected:    integer{value: 0},
+			Expected:    Integer{Value: 0},
 			ShouldError: false,
 		},
 		{
-			Name:        "Large positive integer",
+			Name:        "Large positive Integer",
 			In:          []byte(":1234567890\r\n"),
-			Expected:    integer{value: 1234567890},
+			Expected:    Integer{Value: 1234567890},
 			ShouldError: false,
 		},
 		{
-			Name:        "Large negative integer",
+			Name:        "Large negative Integer",
 			In:          []byte(":-987654321\r\n"),
-			Expected:    integer{value: -987654321},
+			Expected:    Integer{Value: -987654321},
 			ShouldError: false,
 		},
 		{
@@ -116,7 +116,7 @@ func TestIntegerDecode(t *testing.T) {
 			ShouldError: true,
 		},
 		{
-			Name:        "Non-numeric value",
+			Name:        "Non-numeric Value",
 			In:          []byte(":abc\r\n"),
 			Expected:    nil,
 			ShouldError: true,
@@ -124,14 +124,14 @@ func TestIntegerDecode(t *testing.T) {
 		{
 			Name:        "Value with forbidden CRLF",
 			In:          []byte(":123\r\n456\r\n"),
-			Expected:    integer{value: 123},
+			Expected:    Integer{Value: 123},
 			ShouldError: false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			i := integer{}
+			i := Integer{}
 			_, out, err := i.Decode(test.In)
 
 			if test.ShouldError {

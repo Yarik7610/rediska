@@ -5,24 +5,24 @@ import (
 	"fmt"
 )
 
-type array struct {
-	value []Value
+type Array struct {
+	Value []Value
 }
 
-func (a array) Encode() ([]byte, error) {
-	if a.value == nil {
+func (a Array) Encode() ([]byte, error) {
+	if a.Value == nil {
 		return []byte(NULL_ARRAY_RESP_2), nil
 	}
 
 	var b bytes.Buffer
 
-	l := len(a.value)
+	l := len(a.Value)
 	b.WriteString(fmt.Sprintf("*%d\r\n", l))
 
-	for _, val := range a.value {
+	for _, val := range a.Value {
 		encodedVal, err := val.Encode()
 		if err != nil {
-			return nil, fmt.Errorf("array encode error: %v", err)
+			return nil, fmt.Errorf("Array encode error: %v", err)
 		}
 		b.WriteString(string(encodedVal))
 	}
@@ -30,28 +30,28 @@ func (a array) Encode() ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func (array) Decode(b []byte) ([]byte, Value, error) {
+func (Array) Decode(b []byte) ([]byte, Value, error) {
 	l := len(b)
 	if l == 0 {
-		return nil, nil, fmt.Errorf("array decode error: expected not fully empty string")
+		return nil, nil, fmt.Errorf("Array decode error: expected not fully empty string")
 	}
 
 	if string(b) == NULL_ARRAY_RESP_2 {
-		return b[0:0], array{value: nil}, nil
+		return b[len(NULL_ARRAY_RESP_2):], Array{Value: nil}, nil
 	}
 
 	if b[0] != '*' {
-		return nil, nil, fmt.Errorf("array decode error: didn't find '$' sign")
+		return nil, nil, fmt.Errorf("Array decode error: didn't find '*' sign")
 	}
 
 	resLen, b, err := traverseExpectedLen(b[1:])
 	if err != nil {
-		return nil, nil, fmt.Errorf("array decode error: %v", err)
+		return nil, nil, fmt.Errorf("Array decode error: %v", err)
 	}
 
 	b, err = traverseCRLF(b)
 	if err != nil {
-		return nil, nil, fmt.Errorf("bulk string traverse CRLF error: %v", err)
+		return nil, nil, fmt.Errorf("Array traverse CRLF error: %v", err)
 	}
 
 	res := make([]Value, 0, resLen)
@@ -60,24 +60,24 @@ func (array) Decode(b []byte) ([]byte, Value, error) {
 	for range resLen {
 		switch b[0] {
 		case '*':
-			b, curVal, err = resp.Array.Decode(b)
+			b, curVal, err = Controller.Array.Decode(b)
 		case '$':
-			b, curVal, err = resp.BulkString.Decode(b)
+			b, curVal, err = Controller.BulkString.Decode(b)
 		case ':':
-			b, curVal, err = resp.Integer.Decode(b)
+			b, curVal, err = Controller.Integer.Decode(b)
 		case '+':
-			b, curVal, err = resp.SimpleString.Decode(b)
+			b, curVal, err = Controller.SimpleString.Decode(b)
 		case '-':
-			b, curVal, err = resp.SimpleError.Decode(b)
+			b, curVal, err = Controller.SimpleError.Decode(b)
 		default:
-			return nil, nil, fmt.Errorf("array decode error: detected unknown RESP type")
+			return nil, nil, fmt.Errorf("Array decode error: detected unknown RESP type")
 		}
 
 		if err != nil {
-			return nil, nil, fmt.Errorf("array decode error: %v", err)
+			return nil, nil, fmt.Errorf("Array decode error: %v", err)
 		}
 		res = append(res, curVal)
 	}
 
-	return b, array{value: res}, nil
+	return b, Array{Value: res}, nil
 }
