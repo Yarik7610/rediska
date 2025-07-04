@@ -9,10 +9,10 @@ import (
 	"net"
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
-	"github.com/codecrafters-io/redis-starter-go/app/resp"
+	"github.com/codecrafters-io/redis-starter-go/app/state"
 )
 
-func handleClient(conn net.Conn) {
+func handleClient(conn net.Conn, server *state.Server) {
 	defer conn.Close()
 
 	for {
@@ -27,13 +27,13 @@ func handleClient(conn net.Conn) {
 			return
 		}
 
-		value, err := resp.Controller.Decode(b[:n])
+		value, err := server.RESPController.Decode(b[:n])
 		if err != nil {
 			fmt.Fprintf(conn, "RESP controller decode error: %v\n", err)
 			continue
 		}
 
-		commands.HandleCommand(conn, value)
+		commands.HandleCommand(value, conn, server)
 	}
 }
 
@@ -48,6 +48,8 @@ func main() {
 	}
 	defer listener.Close()
 
+	server := state.NewServer()
+
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -55,6 +57,6 @@ func main() {
 			continue
 		}
 
-		go handleClient(conn)
+		go handleClient(conn, server)
 	}
 }

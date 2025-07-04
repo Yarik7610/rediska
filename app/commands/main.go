@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
+	"github.com/codecrafters-io/redis-starter-go/app/state"
 )
 
-func HandleCommand(conn net.Conn, unit resp.Value) {
-	response := handleCommand(unit)
+func HandleCommand(unit resp.Value, conn net.Conn, server *state.Server) {
+	response := handleCommand(unit, server)
 	encoded, err := response.Encode()
 	if err != nil {
 		fmt.Fprintf(conn, "-ERR encode error: %v\r\n", err)
@@ -18,18 +19,18 @@ func HandleCommand(conn net.Conn, unit resp.Value) {
 	conn.Write(encoded)
 }
 
-func handleCommand(unit resp.Value) resp.Value {
+func handleCommand(unit resp.Value, server *state.Server) resp.Value {
 	switch u := unit.(type) {
 	case resp.Array:
-		return handleArrayCommand(u)
+		return handleArrayCommand(u, server)
 	case resp.SimpleString:
-		return handleSimpleStringCommand(u)
+		return handleSimpleStringCommand(u, server)
 	default:
 		return resp.SimpleError{Value: "commands must be sent as RESP array or simple string"}
 	}
 }
 
-func handleArrayCommand(unit resp.Array) resp.Value {
+func handleArrayCommand(unit resp.Array, server *state.Server) resp.Value {
 	if len(unit.Value) == 0 {
 		return resp.SimpleError{Value: "empty RESP array"}
 	}
@@ -40,18 +41,22 @@ func handleArrayCommand(unit resp.Array) resp.Value {
 	}
 
 	command := commandAndArgs[0]
-
+	args := commandAndArgs[1:]
 	switch strings.ToUpper(command) {
 	case "PING":
 		return Ping()
 	case "ECHO":
-		return Echo(commandAndArgs[1:])
+		return Echo(args)
+	case "GET":
+		return Get(args, server)
+	case "SET":
+		return Set(args, server)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
 }
 
-func handleSimpleStringCommand(unit resp.SimpleString) resp.Value {
+func handleSimpleStringCommand(unit resp.SimpleString, server *state.Server) resp.Value {
 	switch unit.Value {
 	case "PING":
 		return Ping()

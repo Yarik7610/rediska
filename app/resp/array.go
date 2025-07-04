@@ -22,7 +22,7 @@ func (a Array) Encode() ([]byte, error) {
 	for _, val := range a.Value {
 		encodedVal, err := val.Encode()
 		if err != nil {
-			return nil, fmt.Errorf("Array encode error: %v", err)
+			return nil, fmt.Errorf("array encode error: %v", err)
 		}
 		b.WriteString(string(encodedVal))
 	}
@@ -33,7 +33,7 @@ func (a Array) Encode() ([]byte, error) {
 func (Array) Decode(b []byte) ([]byte, Value, error) {
 	l := len(b)
 	if l == 0 {
-		return nil, nil, fmt.Errorf("Array decode error: expected not fully empty string")
+		return nil, nil, fmt.Errorf("array decode error: expected not fully empty string")
 	}
 
 	if string(b) == NULL_ARRAY_RESP_2 {
@@ -41,12 +41,12 @@ func (Array) Decode(b []byte) ([]byte, Value, error) {
 	}
 
 	if b[0] != '*' {
-		return nil, nil, fmt.Errorf("Array decode error: didn't find '*' sign")
+		return nil, nil, fmt.Errorf("array decode error: didn't find '*' sign")
 	}
 
 	resLen, b, err := traverseExpectedLen(b[1:])
 	if err != nil {
-		return nil, nil, fmt.Errorf("Array decode error: %v", err)
+		return nil, nil, fmt.Errorf("array decode error: %v", err)
 	}
 
 	b, err = traverseCRLF(b)
@@ -60,15 +60,15 @@ func (Array) Decode(b []byte) ([]byte, Value, error) {
 	for range resLen {
 		switch b[0] {
 		case '*':
-			b, curVal, err = Controller.Array.Decode(b)
+			b, curVal, err = Array{}.Decode(b)
 		case '$':
-			b, curVal, err = Controller.BulkString.Decode(b)
+			b, curVal, err = BulkString{}.Decode(b)
 		case ':':
-			b, curVal, err = Controller.Integer.Decode(b)
+			b, curVal, err = Integer{}.Decode(b)
 		case '+':
-			b, curVal, err = Controller.SimpleString.Decode(b)
+			b, curVal, err = SimpleString{}.Decode(b)
 		case '-':
-			b, curVal, err = Controller.SimpleError.Decode(b)
+			b, curVal, err = SimpleError{}.Decode(b)
 		default:
 			return nil, nil, fmt.Errorf("Array decode error: detected unknown RESP type")
 		}

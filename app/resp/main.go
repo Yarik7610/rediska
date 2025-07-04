@@ -7,17 +7,13 @@ type Value interface {
 	Decode([]byte) ([]byte, Value, error)
 }
 
-type RESPController struct {
-	SimpleString SimpleString
-	SimpleError  SimpleError
-	Integer      Integer
-	BulkString   BulkString
-	Array        Array
+type Controller struct{}
+
+func NewController() *Controller {
+	return &Controller{}
 }
 
-var Controller = RESPController{}
-
-func (rc *RESPController) Decode(b []byte) (Value, error) {
+func (rc *Controller) Decode(b []byte) (Value, error) {
 	l := len(b)
 	if l == 0 {
 		return nil, fmt.Errorf("expected not fully empty string")
@@ -28,15 +24,15 @@ func (rc *RESPController) Decode(b []byte) (Value, error) {
 
 	switch b[0] {
 	case '*':
-		_, res, err = rc.Array.Decode(b)
+		_, res, err = Array{}.Decode(b)
 	case '$':
-		_, res, err = rc.BulkString.Decode(b)
+		_, res, err = BulkString{}.Decode(b)
 	case ':':
-		_, res, err = rc.Integer.Decode(b)
+		_, res, err = Integer{}.Decode(b)
 	case '+':
-		_, res, err = rc.SimpleString.Decode(b)
+		_, res, err = SimpleString{}.Decode(b)
 	case '-':
-		_, res, err = rc.SimpleError.Decode(b)
+		_, res, err = SimpleError{}.Decode(b)
 	default:
 		return nil, fmt.Errorf("detected unknown RESP type")
 	}
