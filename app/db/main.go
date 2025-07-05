@@ -23,13 +23,38 @@ func NewStorage() *Storage {
 
 func (s *Storage) Get(key string) (Item, bool) {
 	s.rwMut.RLock()
-	defer s.rwMut.RUnlock()
 	item, ok := s.data[key]
+	if !ok {
+		s.rwMut.RUnlock()
+		return Item{}, false
+	}
+
+	if !item.Expires.IsZero() && item.Expires.Before(time.Now()) {
+		s.rwMut.RUnlock()
+		s.rwMut.Lock()
+		defer s.rwMut.Unlock()
+
+		// Repeat checking because of small non-blocking window between RUnlock() and Lock()
+		item, ok = s.data[key]
+		if !ok || (!item.Expires.IsZero() && item.Expires.Before(time.Now())) {
+			delete(s.data, key)
+			return Item{}, false
+		}
+		return item, true
+	}
+
+	s.rwMut.RUnlock()
 	return item, ok
 }
 
 func (s *Storage) Set(key, value string) {
 	s.rwMut.Lock()
 	defer s.rwMut.Unlock()
-	s.data[key] = Item{Value: value}
+	s.data[key] = Item{Value: value, Expires: time.Time{}}
+}
+
+func (s *Storage) SetWithExpiry(key, value string, expiry time.Duration) {
+	s.rwMut.Lock()
+	defer s.rwMut.Unlock()
+	s.data[key] = Item{Value: value, Expires: time.Now().Add(expiry)}
 }
