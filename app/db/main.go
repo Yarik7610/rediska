@@ -58,3 +58,14 @@ func (s *Storage) SetWithExpiry(key, value string, expiry time.Duration) {
 	defer s.rwMut.Unlock()
 	s.data[key] = Item{Value: value, Expires: time.Now().Add(expiry)}
 }
+
+func (s *Storage) CleanExpiredKeys() {
+	s.rwMut.Lock()
+	defer s.rwMut.Unlock()
+
+	for key, item := range s.data {
+		if !item.Expires.IsZero() && item.Expires.Before(time.Now()) {
+			delete(s.data, key)
+		}
+	}
+}

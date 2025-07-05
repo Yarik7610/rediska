@@ -1,6 +1,8 @@
 package state
 
 import (
+	"time"
+
 	"github.com/codecrafters-io/redis-starter-go/app/db"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
@@ -15,4 +17,14 @@ func NewServer() *Server {
 		Storage:        db.NewStorage(),
 		RESPController: resp.NewController(),
 	}
+}
+
+func (s *Server) StartExpiredKeysCleanup() {
+	ticker := time.NewTicker(1 * time.Second)
+
+	go func() {
+		for range ticker.C {
+			s.Storage.CleanExpiredKeys()
+		}
+	}()
 }
