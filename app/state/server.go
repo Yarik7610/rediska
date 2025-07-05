@@ -20,7 +20,7 @@ func NewServer() *Server {
 }
 
 func (s *Server) StartExpiredKeysCleanup() {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Hour)
 
 	go func() {
 		for range ticker.C {
