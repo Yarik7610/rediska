@@ -24,7 +24,7 @@ func handleCommand(unit resp.Value, server *state.Server) resp.Value {
 	case resp.Array:
 		return handleArrayCommand(u, server)
 	case resp.SimpleString:
-		return handleSimpleStringCommand(u, server)
+		return handleSimpleStringCommand(u)
 	default:
 		return resp.SimpleError{Value: "commands must be sent as RESP array or simple string"}
 	}
@@ -62,7 +62,7 @@ func handleArrayCommand(unit resp.Array, server *state.Server) resp.Value {
 	}
 }
 
-func handleSimpleStringCommand(unit resp.SimpleString, server *state.Server) resp.Value {
+func handleSimpleStringCommand(unit resp.SimpleString) resp.Value {
 	switch unit.Value {
 	case "PING":
 		return Ping()
