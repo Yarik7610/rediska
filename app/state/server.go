@@ -3,6 +3,7 @@ package state
 import (
 	"time"
 
+	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/db"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
@@ -10,12 +11,14 @@ import (
 type Server struct {
 	Storage        *db.Storage
 	RESPController *resp.Controller
+	Args           *config.Args
 }
 
-func NewServer() *Server {
+func NewServer(args *config.Args) *Server {
 	return &Server{
 		Storage:        db.NewStorage(),
 		RESPController: resp.NewController(),
+		Args:           args,
 	}
 }
 

@@ -51,6 +51,12 @@ func handleArrayCommand(unit resp.Array, server *state.Server) resp.Value {
 		return Get(args, server)
 	case "SET":
 		return Set(args, server)
+	case "CONFIG":
+		secondCommand := strings.ToUpper(args[0])
+		if secondCommand == "GET" {
+			return ConfigGet(args[1:], server)
+		}
+		return resp.SimpleError{Value: fmt.Sprintf("unknown command CONFIG '%s'", secondCommand)}
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}

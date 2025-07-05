@@ -6,7 +6,7 @@ import (
 )
 
 func Get(args []string, server *state.Server) resp.Value {
-	if len(args) > 1 {
+	if len(args) != 1 {
 		return resp.SimpleError{Value: "GET command must have only 1 arg"}
 	}
 

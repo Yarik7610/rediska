@@ -2,13 +2,13 @@ package main
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net"
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
+	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/state"
 )
 
@@ -38,17 +38,16 @@ func handleClient(conn net.Conn, server *state.Server) {
 }
 
 func main() {
-	port := flag.Int("port", 6379, "The port of redis server")
-	flag.Parse()
+	args := config.NewArgs()
 
-	address := fmt.Sprintf("0.0.0.0:%d", *port)
+	address := fmt.Sprintf("0.0.0.0:%d", args.Port)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("Failed to bind to adress %s\n", address)
 	}
 	defer listener.Close()
 
-	server := state.NewServer()
+	server := state.NewServer(args)
 	server.StartExpiredKeysCleanup()
 
 	for {
