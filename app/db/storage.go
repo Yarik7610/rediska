@@ -36,10 +36,14 @@ func (s *Storage) Get(key string) (Item, bool) {
 
 		// Repeat checking because of small non-blocking window between RUnlock() and Lock()
 		item, ok = s.data[key]
-		if !ok || (!item.Expires.IsZero() && item.Expires.Before(time.Now())) {
+		if !ok {
+			return Item{}, false
+		}
+		if !item.Expires.IsZero() && item.Expires.Before(time.Now()) {
 			delete(s.data, key)
 			return Item{}, false
 		}
+
 		return item, true
 	}
 
