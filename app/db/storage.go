@@ -50,12 +50,18 @@ func (s *Storage) Get(key string) (Item, bool) {
 func (s *Storage) Set(key, value string) {
 	s.rwMut.Lock()
 	defer s.rwMut.Unlock()
-	s.data[key] = Item{Value: value, Expires: time.Time{}}
+	s.data[key] = Item{Value: value}
 }
 
 func (s *Storage) SetWithExpiry(key, value string, expiry time.Duration) {
 	s.rwMut.Lock()
 	defer s.rwMut.Unlock()
+
+	if expiry <= 0 {
+		delete(s.data, key)
+		return
+	}
+
 	s.data[key] = Item{Value: value, Expires: time.Now().Add(expiry)}
 }
 
