@@ -79,7 +79,7 @@ func TestStorage(t *testing.T) {
 				defer wg.Done()
 				item, ok := storage.Get(keys[idx])
 				assert.False(t, ok)
-				assert.Equal(t, Item{}, item)
+				assert.Nil(t, item)
 			}(i)
 		}
 		wg.Wait()
@@ -108,7 +108,7 @@ func TestStorage(t *testing.T) {
 
 		item, ok := storage.Get("nonexistent")
 		assert.False(t, ok)
-		assert.Equal(t, Item{}, item)
+		assert.Nil(t, item)
 	})
 
 	t.Run("Concurrent overwrite", func(t *testing.T) {
@@ -142,6 +142,6 @@ func TestStorage(t *testing.T) {
 
 		item, ok := storage.Get("key")
 		assert.False(t, ok)
-		assert.Equal(t, Item{}, item)
+		assert.Nil(t, item)
 	})
 }

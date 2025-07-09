@@ -21,12 +21,12 @@ func NewStorage() *Storage {
 	}
 }
 
-func (s *Storage) Get(key string) (Item, bool) {
+func (s *Storage) Get(key string) (*Item, bool) {
 	s.rwMut.RLock()
 	item, ok := s.data[key]
 	if !ok {
 		s.rwMut.RUnlock()
-		return Item{}, false
+		return nil, false
 	}
 
 	if !item.Expires.IsZero() && item.Expires.Before(time.Now()) {
@@ -37,18 +37,18 @@ func (s *Storage) Get(key string) (Item, bool) {
 		// Repeat checking because of small non-blocking window between RUnlock() and Lock()
 		item, ok = s.data[key]
 		if !ok {
-			return Item{}, false
+			return nil, false
 		}
 		if !item.Expires.IsZero() && item.Expires.Before(time.Now()) {
 			delete(s.data, key)
-			return Item{}, false
+			return nil, false
 		}
 
-		return item, true
+		return &item, true
 	}
 
 	s.rwMut.RUnlock()
-	return item, ok
+	return &item, ok
 }
 
 func (s *Storage) Set(key, value string) {
