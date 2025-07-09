@@ -4,19 +4,19 @@ import (
 	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/config"
-	"github.com/codecrafters-io/redis-starter-go/app/db"
+	"github.com/codecrafters-io/redis-starter-go/app/db/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
 type Server struct {
-	Storage        *db.Storage
+	Storage        *memory.Storage
 	RESPController *resp.Controller
 	Args           *config.Args
 }
 
 func NewServer(args *config.Args) *Server {
 	return &Server{
-		Storage:        db.NewStorage(),
+		Storage:        memory.NewStorage(),
 		RESPController: resp.NewController(),
 		Args:           args,
 	}
