@@ -48,6 +48,7 @@ func main() {
 	defer listener.Close()
 
 	server := state.NewServer(args)
+	server.InitStorage()
 	server.StartExpiredKeysCleanup()
 
 	for {
