@@ -85,6 +85,23 @@ func TestStorage(t *testing.T) {
 		wg.Wait()
 	})
 
+	t.Run("GetKeys with mixed keys", func(t *testing.T) {
+		storage := NewStorage()
+		storage.Set("key1", "value1")
+		storage.SetWithExpiry("key2", "value2", 50*time.Millisecond)
+		storage.SetWithExpiry("key3", "value3", -1)
+
+		time.Sleep(100 * time.Millisecond)
+
+		keys := storage.GetKeys()
+		assert.Equal(t, []string{"key1"}, keys)
+
+		_, ok := storage.Get("key2")
+		assert.False(t, ok)
+		_, ok = storage.Get("key3")
+		assert.False(t, ok)
+	})
+
 	t.Run("CleanExpiredKeys", func(t *testing.T) {
 		storage := NewStorage()
 

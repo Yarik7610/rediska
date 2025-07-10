@@ -29,7 +29,7 @@ func (s *Storage) Get(key string) (*Item, bool) {
 		return nil, false
 	}
 
-	if !item.Expires.IsZero() && item.Expires.Before(time.Now()) {
+	if itemExpired(&item) {
 		s.rwMut.RUnlock()
 		s.rwMut.Lock()
 		defer s.rwMut.Unlock()
@@ -39,7 +39,7 @@ func (s *Storage) Get(key string) (*Item, bool) {
 		if !ok {
 			return nil, false
 		}
-		if !item.Expires.IsZero() && item.Expires.Before(time.Now()) {
+		if itemExpired(&item) {
 			delete(s.data, key)
 			return nil, false
 		}
@@ -49,6 +49,34 @@ func (s *Storage) Get(key string) (*Item, bool) {
 
 	s.rwMut.RUnlock()
 	return &item, ok
+}
+
+func (s *Storage) GetKeys() []string {
+	s.rwMut.RLock()
+	var keys []string
+	var expiredKeys []string
+
+	for key, item := range s.data {
+		if itemExpired(&item) {
+			expiredKeys = append(expiredKeys, key)
+		} else {
+			keys = append(keys, key)
+		}
+	}
+	s.rwMut.RUnlock()
+
+	if len(expiredKeys) > 0 {
+		s.rwMut.Lock()
+		for _, key := range expiredKeys {
+			// Repeat checking because of small non-blocking window between RUnlock() and Lock()
+			if item, ok := s.data[key]; ok && itemExpired(&item) {
+				delete(s.data, key)
+			}
+		}
+		s.rwMut.Unlock()
+	}
+
+	return keys
 }
 
 func (s *Storage) Set(key, value string) {
@@ -74,8 +102,12 @@ func (s *Storage) CleanExpiredKeys() {
 	defer s.rwMut.Unlock()
 
 	for key, item := range s.data {
-		if !item.Expires.IsZero() && item.Expires.Before(time.Now()) {
+		if itemExpired(&item) {
 			delete(s.data, key)
 		}
 	}
+}
+
+func itemExpired(item *Item) bool {
+	return !item.Expires.IsZero() && item.Expires.Before(time.Now())
 }
