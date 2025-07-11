@@ -1,53 +1,50 @@
 package rdb
 
 import (
+	"encoding/binary"
 	"fmt"
 )
 
 func (dec *decoder) traverseUInt64() (uint64, error) {
-	var num uint64
-	for range 8 {
-		b, err := dec.traverseUInt8()
-		if err != nil {
-			return 0, fmt.Errorf("traverseUInt64 error: %v", err)
-		}
-		num = (num << 8) | uint64(b)
-	}
-	return num, nil
+	num, err := dec.traverseXBytes(8)
+	return num, err
 }
 
 func (dec *decoder) traverseUInt32() (uint32, error) {
-	var num uint32
-	for range 4 {
-		b, err := dec.traverseUInt8()
-		if err != nil {
-			return 0, fmt.Errorf("traverseUInt32 error: %v", err)
-		}
-		num = (num << 8) | uint32(b)
-	}
-	return num, nil
+	num, err := dec.traverseXBytes(4)
+	return uint32(num), err
 }
 
 func (dec *decoder) traverseUInt16() (uint16, error) {
-	var num uint16
-	for range 2 {
-		b, err := dec.traverseUInt8()
-		if err != nil {
-			return 0, fmt.Errorf("traverseUInt16 error: %v", err)
-		}
-		num = (num << 8) | uint16(b)
-	}
-	return num, nil
+	num, err := dec.traverseXBytes(2)
+	return uint16(num), err
 }
 
 func (dec *decoder) traverseUInt8() (uint8, error) {
-	if dec.len <= dec.pos+1 {
-		return 0, fmt.Errorf("traverseUInt8: can't traverse by 1 byte because rdb file length is %d", dec.len)
+	num, err := dec.traverseXBytes(1)
+	return uint8(num), err
+}
+
+func (dec *decoder) traverseXBytes(byteCount int) (uint64, error) {
+	if dec.len <= dec.pos+byteCount {
+		return 0, fmt.Errorf("traverseUInt%d: not enough bytes, length is %d, pos is %d", byteCount*8, dec.len, dec.pos)
 	}
 
-	num := uint8(dec.b[dec.pos])
-	dec.pos += 1
-	return num, nil
+	bytes := dec.b[dec.pos : dec.pos+byteCount]
+	dec.pos += byteCount
+
+	switch byteCount {
+	case 1:
+		return uint64(bytes[0]), nil
+	case 2:
+		return uint64(binary.LittleEndian.Uint16(bytes)), nil
+	case 4:
+		return uint64(binary.LittleEndian.Uint32(bytes)), nil
+	case 8:
+		return binary.LittleEndian.Uint64(bytes), nil
+	default:
+		return 0, fmt.Errorf("traverseUintXBytes: unsupported byte count %d", byteCount)
+	}
 }
 
 func (dec *decoder) traverseStringLen(offset int) (string, error) {
