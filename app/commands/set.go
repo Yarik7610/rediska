@@ -21,7 +21,7 @@ func Set(args []string, server *state.Server) resp.Value {
 	if len(args) > 2 {
 		expireMark := args[2]
 		expireValue := args[3]
-		expiry, err := getExpiry(expireMark, expireValue)
+		expiry, err := getExpireTime(expireMark, expireValue)
 		if err != nil {
 			return resp.SimpleError{Value: fmt.Sprintf("SET command get expiry error: %v", err)}
 		}
@@ -33,21 +33,21 @@ func Set(args []string, server *state.Server) resp.Value {
 	return resp.SimpleString{Value: "OK"}
 }
 
-func getExpiry(expireMark, expireValue string) (time.Duration, error) {
-	atoiExpireValue, err := strconv.Atoi(expireValue)
+func getExpireTime(expireMark, expireDuration string) (time.Time, error) {
+	atoiExpireDuration, err := strconv.Atoi(expireDuration)
 	if err != nil {
-		return 0, fmt.Errorf("expire value atoi error: %v", err)
+		return time.Time{}, fmt.Errorf("expire duration atoi error: %v", err)
 	}
 
-	expireDurationValue := time.Duration(atoiExpireValue)
+	expireDurationValue := time.Duration(atoiExpireDuration)
 
 	upperCasedExpireMark := strings.ToUpper(expireMark)
 	switch upperCasedExpireMark {
 	case "EX":
-		return time.Second * expireDurationValue, nil
+		return time.Now().Add(time.Second * expireDurationValue), nil
 	case "PX":
-		return time.Millisecond * expireDurationValue, nil
+		return time.Now().Add(time.Millisecond * expireDurationValue), nil
 	default:
-		return 0, fmt.Errorf("unknown expire mark: %s", upperCasedExpireMark)
+		return time.Time{}, fmt.Errorf("unknown expire mark: %s", upperCasedExpireMark)
 	}
 }

@@ -15,30 +15,30 @@ type decoder struct {
 	len int
 }
 
-func Decode(b []byte) error {
+func Decode(b []byte) (map[string]memory.Item, error) {
 	dec := decoder{b: b, pos: 0, len: len(b)}
 
 	header, err := dec.decodeHeader()
 	if err != nil {
-		return fmt.Errorf("decode header error: %v", err)
+		return nil, fmt.Errorf("decode header error: %v", err)
 	}
 	fmt.Println(header)
 
 	metadata, err := dec.decodeMetadata()
 	if err != nil {
-		return fmt.Errorf("decode metadata error: %v", err)
+		return nil, fmt.Errorf("decode metadata error: %v", err)
 	}
 	fmt.Println(metadata)
 
 	databases, err := dec.decodeDatabases()
 	if err != nil {
-		return fmt.Errorf("decode database error: %v", err)
+		return nil, fmt.Errorf("decode database error: %v", err)
 	}
 	for _, database := range databases {
 		fmt.Println(database)
 	}
 
-	return nil
+	return databases[0].items, nil
 }
 
 func (dec *decoder) decodeHeader() (*Header, error) {

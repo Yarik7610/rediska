@@ -30,7 +30,7 @@ func (s *Storage) Get(key string) (*Item, bool) {
 		return nil, false
 	}
 
-	if itemExpired(&item) {
+	if ItemExpired(&item) {
 		s.rwMut.RUnlock()
 		s.rwMut.Lock()
 		defer s.rwMut.Unlock()
@@ -40,7 +40,7 @@ func (s *Storage) Get(key string) (*Item, bool) {
 		if !ok {
 			return nil, false
 		}
-		if itemExpired(&item) {
+		if ItemExpired(&item) {
 			delete(s.data, key)
 			return nil, false
 		}
@@ -58,7 +58,7 @@ func (s *Storage) GetKeys() []string {
 	var expiredKeys []string
 
 	for key, item := range s.data {
-		if itemExpired(&item) {
+		if ItemExpired(&item) {
 			expiredKeys = append(expiredKeys, key)
 		} else {
 			keys = append(keys, key)
@@ -70,7 +70,7 @@ func (s *Storage) GetKeys() []string {
 		s.rwMut.Lock()
 		for _, key := range expiredKeys {
 			// Repeat checking because of small non-blocking window between RUnlock() and Lock()
-			if item, ok := s.data[key]; ok && itemExpired(&item) {
+			if item, ok := s.data[key]; ok && ItemExpired(&item) {
 				delete(s.data, key)
 			}
 		}
@@ -86,16 +86,16 @@ func (s *Storage) Set(key, value string) {
 	s.data[key] = Item{Value: value}
 }
 
-func (s *Storage) SetWithExpiry(key, value string, expiry time.Duration) {
+func (s *Storage) SetWithExpiry(key, value string, expires time.Time) {
 	s.rwMut.Lock()
 	defer s.rwMut.Unlock()
 
-	if expiry <= 0 {
+	if !expires.After(time.Now()) || expires.IsZero() {
 		delete(s.data, key)
 		return
 	}
 
-	s.data[key] = Item{Value: value, Expires: time.Now().Add(expiry)}
+	s.data[key] = Item{Value: value, Expires: expires}
 }
 
 func (s *Storage) CleanExpiredKeys() {
@@ -103,12 +103,16 @@ func (s *Storage) CleanExpiredKeys() {
 	defer s.rwMut.Unlock()
 
 	for key, item := range s.data {
-		if itemExpired(&item) {
+		if ItemExpired(&item) {
 			delete(s.data, key)
 		}
 	}
 }
 
-func itemExpired(item *Item) bool {
-	return !item.Expires.IsZero() && item.Expires.Before(time.Now())
+func ItemExpired(item *Item) bool {
+	return ItemHasExpiration(item) && item.Expires.Before(time.Now())
+}
+
+func ItemHasExpiration(item *Item) bool {
+	return !item.Expires.IsZero()
 }

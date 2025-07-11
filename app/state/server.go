@@ -39,10 +39,23 @@ func (s *Server) InitStorage() {
 		return
 	}
 
-	err = rdb.Decode(b)
+	items, err := rdb.Decode(b)
 	if err != nil {
 		log.Printf("Skip RDB storage seed, RDB decode error: %v\n", err)
 		return
+	}
+	s.PutRDBItemsIntoStorage(items)
+}
+
+func (s *Server) PutRDBItemsIntoStorage(items map[string]memory.Item) {
+	for key, item := range items {
+		if memory.ItemHasExpiration(&item) {
+			if !memory.ItemExpired(&item) {
+				s.Storage.SetWithExpiry(key, item.Value, item.Expires)
+			}
+		} else {
+			s.Storage.Set(key, item.Value)
+		}
 	}
 }
 

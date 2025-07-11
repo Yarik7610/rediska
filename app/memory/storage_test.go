@@ -58,7 +58,7 @@ func TestStorage(t *testing.T) {
 		for i := range count {
 			go func(idx int) {
 				defer wg.Done()
-				storage.SetWithExpiry(keys[idx], values[idx], 100*time.Millisecond)
+				storage.SetWithExpiry(keys[idx], values[idx], time.Now().Add(100*time.Millisecond))
 			}(i)
 
 			go func(idx int) {
@@ -88,8 +88,8 @@ func TestStorage(t *testing.T) {
 	t.Run("GetKeys with mixed keys", func(t *testing.T) {
 		storage := NewStorage()
 		storage.Set("key1", "value1")
-		storage.SetWithExpiry("key2", "value2", 50*time.Millisecond)
-		storage.SetWithExpiry("key3", "value3", -1)
+		storage.SetWithExpiry("key2", "value2", time.Now().Add(50*time.Millisecond))
+		storage.SetWithExpiry("key3", "value3", time.Now().Add(-1))
 
 		time.Sleep(100 * time.Millisecond)
 
@@ -105,7 +105,7 @@ func TestStorage(t *testing.T) {
 	t.Run("CleanExpiredKeys", func(t *testing.T) {
 		storage := NewStorage()
 
-		storage.SetWithExpiry("key1", "value1", 50*time.Millisecond)
+		storage.SetWithExpiry("key1", "value1", time.Now().Add(50*time.Millisecond))
 		storage.Set("key2", "value2")
 
 		time.Sleep(100 * time.Millisecond)
@@ -153,9 +153,9 @@ func TestStorage(t *testing.T) {
 		assert.Contains(t, expectedValues, item.Value)
 	})
 
-	t.Run("SetWithExpiry with zero duration", func(t *testing.T) {
+	t.Run("SetWithExpiry with zero expiry", func(t *testing.T) {
 		storage := NewStorage()
-		storage.SetWithExpiry("key", "value", 0)
+		storage.SetWithExpiry("key", "value", time.Now().Add(0))
 
 		item, ok := storage.Get("key")
 		assert.False(t, ok)
