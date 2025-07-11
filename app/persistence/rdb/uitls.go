@@ -4,32 +4,6 @@ import (
 	"fmt"
 )
 
-func (dec *decoder) traverseIntegerString(remainingBits uint8) (int, error) {
-	switch remainingBits {
-	case 0:
-		value, err := dec.traverseUInt8()
-		if err != nil {
-			return 0, fmt.Errorf("failed to read 8-bit integer as string: %v", err)
-		}
-		return int(value), nil
-	case 1:
-		value, err := dec.traverseUInt16()
-		if err != nil {
-			return 0, fmt.Errorf("failed to read 16-bit integer as string: %v", err)
-		}
-		return int(value), nil
-	case 2:
-		value, err := dec.traverseUInt32()
-		if err != nil {
-			return 0, fmt.Errorf("failed to read 16-bit integer as string: %v", err)
-		}
-		return int(value), nil
-	case 3:
-		return 0, fmt.Errorf("unsupported compressed string format")
-	}
-	return 0, fmt.Errorf("unsupported integer string format")
-}
-
 func (dec *decoder) traverseUInt32() (uint32, error) {
 	var num uint32
 	for range 4 {
