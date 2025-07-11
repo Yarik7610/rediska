@@ -1,6 +1,7 @@
 package rdb
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,6 +20,17 @@ func (h *Header) String() string {
 
 type Metadata struct {
 	data map[string]string
+}
+
+func (m *Metadata) String() string {
+	var b bytes.Buffer
+
+	b.WriteString(fmt.Sprintln("METADATA"))
+	for key, value := range m.data {
+		b.WriteString(fmt.Sprintf("Key: %s, Value: %s\n", key, value))
+	}
+
+	return b.String()
 }
 
 type Database struct {
