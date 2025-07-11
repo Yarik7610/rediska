@@ -10,6 +10,7 @@ type Item struct {
 	Expires time.Time
 }
 
+// No division on 2 maps: expired and unexpired
 type Storage struct {
 	data  map[string]Item
 	rwMut sync.RWMutex

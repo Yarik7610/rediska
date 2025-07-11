@@ -2,6 +2,7 @@ package rdb
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,12 +34,27 @@ func (m *Metadata) String() string {
 	return b.String()
 }
 
+// No division on 2 maps: expired and unexpired
 type Database struct {
-	dbSelector      int
-	keysSize        int
-	expiredKeysSize int
-	items           map[string]memory.Item
+	dbSelector              int
+	keysCount               int
+	keysWithExpirationCount int
+	items                   map[string]memory.Item
 }
+
+func (d *Database) String() string {
+	var b bytes.Buffer
+
+	b.WriteString(fmt.Sprintf("DATABASE #%d\n", d.dbSelector))
+	b.WriteString(fmt.Sprintf("Keys count: %d, Keys with expiration count: %d\n", d.keysCount, d.keysWithExpirationCount))
+	for key, value := range d.items {
+		b.WriteString(fmt.Sprintf("Key: %s, Value: %+v\n", key, value))
+	}
+
+	return b.String()
+}
+
+var ErrorEOF error = errors.New("EOF")
 
 const (
 	OP_EOF          = 0xFF
@@ -47,6 +63,20 @@ const (
 	OP_EXPIRETIMEMS = 0xFC
 	OP_RESIZEDB     = 0xFB
 	OP_AUX          = 0xFA
+)
+
+const (
+	STRING_ENCODING             = 0
+	LIST_ENCODING               = 1
+	SET_ENCODING                = 2
+	SORTED_SET_ENCODING         = 3
+	HASH_ENCODING               = 4
+	ZIPMAP_ENCODING             = 9
+	ZIPLIST_ENCODING            = 10
+	INTSET_ENCODING             = 11
+	SORTED_SET_ZIPLIST_ENCODING = 12
+	HASHMAP_ZIPLIST_ENCODING    = 13
+	LIST_QUICKLIST_ENCODING     = 14
 )
 
 func IsFileExists(dir, filename string) bool {

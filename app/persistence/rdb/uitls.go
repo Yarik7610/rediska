@@ -4,6 +4,18 @@ import (
 	"fmt"
 )
 
+func (dec *decoder) traverseUInt64() (uint64, error) {
+	var num uint64
+	for range 8 {
+		b, err := dec.traverseUInt8()
+		if err != nil {
+			return 0, fmt.Errorf("traverseUInt64 error: %v", err)
+		}
+		num = (num << 8) | uint64(b)
+	}
+	return num, nil
+}
+
 func (dec *decoder) traverseUInt32() (uint32, error) {
 	var num uint32
 	for range 4 {
