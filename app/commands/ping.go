@@ -4,6 +4,6 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func Ping() resp.SimpleString {
+func (c *Controller) ping() resp.SimpleString {
 	return resp.SimpleString{Value: "PONG"}
 }

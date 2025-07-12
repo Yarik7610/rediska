@@ -7,12 +7,11 @@ import (
 	"log"
 	"net"
 
-	"github.com/codecrafters-io/redis-starter-go/app/commands"
 	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/state"
 )
 
-func handleClient(conn net.Conn, server *state.Server) {
+func handleClient(conn net.Conn, server state.Server) {
 	defer conn.Close()
 
 	for {
@@ -27,29 +26,28 @@ func handleClient(conn net.Conn, server *state.Server) {
 			return
 		}
 
-		value, err := server.RESPController.Decode(b[:n])
+		value, err := server.DecodeRESP(b[:n])
 		if err != nil {
 			fmt.Fprintf(conn, "RESP controller decode error: %v\n", err)
 			continue
 		}
 
-		commands.HandleCommand(value, conn, server)
+		server.HandleCommand(value, conn)
 	}
 }
 
 func main() {
 	args := config.NewArgs()
 
-	address := fmt.Sprintf("0.0.0.0:%d", args.Port)
+	address := fmt.Sprintf("%s:%d", args.Host, args.Port)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("Failed to bind to adress %s\n", address)
 	}
 	defer listener.Close()
 
-	server := state.NewServer(args)
-	server.InitStorage()
-	server.StartExpiredKeysCleanup()
+	server := state.SpawnServer(args)
+	server.Start()
 
 	for {
 		conn, err := listener.Accept()

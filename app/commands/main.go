@@ -5,12 +5,23 @@ import (
 	"net"
 	"strings"
 
+	"github.com/codecrafters-io/redis-starter-go/app/config"
+	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
-	"github.com/codecrafters-io/redis-starter-go/app/state"
 )
 
-func HandleCommand(unit resp.Value, conn net.Conn, server *state.Server) {
-	response := handleCommand(unit, server)
+type Controller struct {
+	storage  *memory.Storage
+	args     *config.Args
+	isMaster bool
+}
+
+func NewController(storage *memory.Storage, args *config.Args, isMaster bool) *Controller {
+	return &Controller{storage: storage, args: args, isMaster: isMaster}
+}
+
+func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn) {
+	response := c.handleCommand(unit)
 	encoded, err := response.Encode()
 	if err != nil {
 		fmt.Fprintf(conn, "-ERR encode error: %v\r\n", err)
@@ -19,18 +30,18 @@ func HandleCommand(unit resp.Value, conn net.Conn, server *state.Server) {
 	conn.Write(encoded)
 }
 
-func handleCommand(unit resp.Value, server *state.Server) resp.Value {
+func (c *Controller) handleCommand(unit resp.Value) resp.Value {
 	switch u := unit.(type) {
 	case resp.Array:
-		return handleArrayCommand(u, server)
+		return c.handleArrayCommand(u)
 	case resp.SimpleString:
-		return handleSimpleStringCommand(u)
+		return c.handleSimpleStringCommand(u)
 	default:
 		return resp.SimpleError{Value: "commands must be sent as RESP array or simple string"}
 	}
 }
 
-func handleArrayCommand(unit resp.Array, server *state.Server) resp.Value {
+func (c *Controller) handleArrayCommand(unit resp.Array) resp.Value {
 	if len(unit.Value) == 0 {
 		return resp.SimpleError{Value: "empty RESP array"}
 	}
@@ -44,30 +55,30 @@ func handleArrayCommand(unit resp.Array, server *state.Server) resp.Value {
 	args := commandAndArgs[1:]
 	switch strings.ToUpper(command) {
 	case "PING":
-		return Ping()
+		return c.ping()
 	case "ECHO":
-		return Echo(args)
+		return c.echo(args)
 	case "GET":
-		return Get(args, server)
+		return c.get(args)
 	case "SET":
-		return Set(args, server)
+		return c.set(args)
 	case "CONFIG":
 		secondCommand := strings.ToUpper(args[0])
 		if secondCommand == "GET" {
-			return ConfigGet(args[1:], server)
+			return c.configGet(args[1:])
 		}
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command CONFIG '%s'", secondCommand)}
 	case "KEYS":
-		return Keys(args, server)
+		return c.keys(args)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
 }
 
-func handleSimpleStringCommand(unit resp.SimpleString) resp.Value {
+func (c *Controller) handleSimpleStringCommand(unit resp.SimpleString) resp.Value {
 	switch unit.Value {
 	case "PING":
-		return Ping()
+		return c.ping()
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", unit.Value)}
 	}

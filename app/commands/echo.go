@@ -6,7 +6,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func Echo(args []string) resp.BulkString {
+func (c *Controller) echo(args []string) resp.BulkString {
 	res := strings.Join(args, " ")
 	return resp.BulkString{Value: &res}
 }

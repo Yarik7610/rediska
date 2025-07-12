@@ -4,10 +4,9 @@ import (
 	"fmt"
 
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
-	"github.com/codecrafters-io/redis-starter-go/app/state"
 )
 
-func ConfigGet(args []string, server *state.Server) resp.Value {
+func (c *Controller) configGet(args []string) resp.Value {
 	if len(args) != 1 {
 		return resp.SimpleError{Value: "CONFIG GET command must have only 1 arg"}
 	}
@@ -17,12 +16,12 @@ func ConfigGet(args []string, server *state.Server) resp.Value {
 	case "dir":
 		return resp.Array{Value: []resp.Value{
 			resp.BulkString{Value: &arg},
-			resp.BulkString{Value: &server.Args.DBDir},
+			resp.BulkString{Value: &c.args.DBDir},
 		}}
 	case "dbfilename":
 		return resp.Array{Value: []resp.Value{
 			resp.BulkString{Value: &arg},
-			resp.BulkString{Value: &server.Args.DBFilename},
+			resp.BulkString{Value: &c.args.DBFilename},
 		}}
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("CONFIG GET command unknown arg: %s", arg)}

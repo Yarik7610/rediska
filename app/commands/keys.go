@@ -2,10 +2,9 @@ package commands
 
 import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
-	"github.com/codecrafters-io/redis-starter-go/app/state"
 )
 
-func Keys(args []string, server *state.Server) resp.Value {
+func (c *Controller) keys(args []string) resp.Value {
 	if len(args) != 1 {
 		return resp.SimpleError{Value: "KEYS command error: only 1 argument supported"}
 	}
@@ -15,7 +14,7 @@ func Keys(args []string, server *state.Server) resp.Value {
 		return resp.SimpleError{Value: "KEYS command error: only '*' pattern supported"}
 	}
 
-	keys := server.Storage.GetKeys()
+	keys := c.storage.GetKeys()
 	var value []resp.Value
 	for _, key := range keys {
 		value = append(value, resp.BulkString{Value: &key})
