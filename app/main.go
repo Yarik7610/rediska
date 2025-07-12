@@ -1,40 +1,13 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net"
 
 	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/state"
 )
-
-func handleClient(conn net.Conn, server state.Server) {
-	defer conn.Close()
-
-	for {
-		b := make([]byte, 1024)
-
-		n, err := conn.Read(b)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				return
-			}
-			log.Printf("Connnection read error: %v", err)
-			return
-		}
-
-		value, err := server.DecodeRESP(b[:n])
-		if err != nil {
-			fmt.Fprintf(conn, "RESP controller decode error: %v\n", err)
-			continue
-		}
-
-		server.HandleCommand(value, conn)
-	}
-}
 
 func main() {
 	args := config.NewArgs()
@@ -46,16 +19,6 @@ func main() {
 	}
 	defer listener.Close()
 
-	server := state.SpawnServer(args)
+	server := state.SpawnServer(args, listener)
 	server.Start()
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Printf("Error accepting connection: %v\n", err)
-			continue
-		}
-
-		go handleClient(conn, server)
-	}
 }

@@ -1,6 +1,9 @@
 package state
 
 import (
+	"errors"
+	"fmt"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -9,6 +12,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/persistence/rdb"
+	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
@@ -21,25 +25,28 @@ type Server interface {
 }
 
 type BaseServer struct {
+	Listener          net.Listener
 	Storage           *memory.Storage
 	RESPController    *resp.Controller
-	CommandController *commands.Controller
 	Args              *config.Args
+	CommandController *commands.Controller
+	ReplicationInfo   *replication.Info
 }
 
-func NewBaseServer(args *config.Args) *BaseServer {
+func NewBaseServer(args *config.Args, listener net.Listener) *BaseServer {
 	return &BaseServer{
+		Listener:       listener,
 		Storage:        memory.NewStorage(),
 		RESPController: resp.NewController(),
 		Args:           args,
 	}
 }
 
-func SpawnServer(args *config.Args) Server {
+func SpawnServer(args *config.Args, listener net.Listener) Server {
 	if args.ReplicaOf == nil {
-		return NewMasterServer(args)
+		return NewMasterServer(args, listener)
 	} else {
-		return NewReplicaServer(args)
+		return NewReplicaServer(args, listener)
 	}
 }
 
@@ -84,6 +91,43 @@ func (s *BaseServer) putRDBItemsIntoStorage(items map[string]memory.Item) {
 		} else {
 			s.Storage.Set(key, item.Value)
 		}
+	}
+}
+
+func (s *BaseServer) acceptConnections() {
+	for {
+		conn, err := s.Listener.Accept()
+		if err != nil {
+			log.Printf("Error accepting connection: %v\n", err)
+			continue
+		}
+
+		go s.handleClient(conn)
+	}
+}
+
+func (s *BaseServer) handleClient(conn net.Conn) {
+	defer conn.Close()
+
+	for {
+		b := make([]byte, 1024)
+
+		n, err := conn.Read(b)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return
+			}
+			log.Printf("Connnection read error: %v", err)
+			return
+		}
+
+		value, err := s.DecodeRESP(b[:n])
+		if err != nil {
+			fmt.Fprintf(conn, "RESP controller decode error: %v\n", err)
+			continue
+		}
+
+		s.HandleCommand(value, conn)
 	}
 }
 

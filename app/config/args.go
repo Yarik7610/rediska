@@ -13,15 +13,15 @@ type Args struct {
 	Port       int
 	DBDir      string
 	DBFilename string
-	ReplicaOf  *ReplicaOfConfig
+	ReplicaOf  *replicaOfConfig
 }
 
-type ReplicaOfConfig struct {
+type replicaOfConfig struct {
 	Host string
 	Port int
 }
 
-func (replcfg *ReplicaOfConfig) String() string {
+func (replcfg *replicaOfConfig) String() string {
 	return fmt.Sprintf("%s %d", replcfg.Host, replcfg.Port)
 }
 
@@ -48,7 +48,7 @@ func NewArgs() *Args {
 	}
 }
 
-func configReplicaOf(replicaOf *string) (*ReplicaOfConfig, error) {
+func configReplicaOf(replicaOf *string) (*replicaOfConfig, error) {
 	if *replicaOf == "" {
 		return nil, nil
 	}
@@ -69,5 +69,5 @@ func configReplicaOf(replicaOf *string) (*ReplicaOfConfig, error) {
 		return nil, fmt.Errorf("port should be decimal: %v", err)
 	}
 
-	return &ReplicaOfConfig{Host: masterHost, Port: atoiMasterPort}, nil
+	return &replicaOfConfig{Host: masterHost, Port: atoiMasterPort}, nil
 }

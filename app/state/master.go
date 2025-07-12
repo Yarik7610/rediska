@@ -6,6 +6,7 @@ import (
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
 	"github.com/codecrafters-io/redis-starter-go/app/config"
+	"github.com/codecrafters-io/redis-starter-go/app/replication"
 )
 
 type MasterServer struct {
@@ -13,18 +14,20 @@ type MasterServer struct {
 	Replicas map[string]net.Conn
 }
 
-func NewMasterServer(args *config.Args) *MasterServer {
+func NewMasterServer(args *config.Args, listener net.Listener) *MasterServer {
 	ms := &MasterServer{
-		BaseServer: NewBaseServer(args),
+		BaseServer: NewBaseServer(args, listener),
 		Replicas:   make(map[string]net.Conn),
 	}
-	ms.CommandController = commands.NewController(ms.BaseServer.Storage, ms.BaseServer.Args, ms.IsMaster())
+	ms.ReplicationInfo = replication.NewMasterInfo()
+	ms.CommandController = commands.NewController(ms.Storage, ms.Args, ms.ReplicationInfo)
 	return ms
 }
 
 func (ms *MasterServer) Start() {
 	fmt.Println("START MASTER SERVER")
 	ms.initStorage()
+	ms.acceptConnections()
 	ms.startExpiredKeysCleanup()
 }
 

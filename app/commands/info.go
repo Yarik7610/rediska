@@ -14,20 +14,9 @@ func (c *Controller) info(args []string) resp.Value {
 	section := args[0]
 	switch section {
 	case "replication":
-		info, err := replicationInfo(c)
-		if err != nil {
-			return resp.SimpleError{Value: fmt.Sprintf("INFO replication error: %v", err)}
-		}
-		return resp.BulkString{Value: &info}
+		replicationInfo := c.replicationInfo.String()
+		return resp.BulkString{Value: &replicationInfo}
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("INFO unsupported section: %s", section)}
-	}
-}
-
-func replicationInfo(c *Controller) (string, error) {
-	if c.serverIsMaster {
-		return "role:master", nil
-	} else {
-		return "role:slave", nil
 	}
 }

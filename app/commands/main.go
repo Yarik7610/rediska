@@ -7,17 +7,18 @@ import (
 
 	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
+	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
 type Controller struct {
-	storage        *memory.Storage
-	args           *config.Args
-	serverIsMaster bool
+	storage         *memory.Storage
+	args            *config.Args
+	replicationInfo *replication.Info
 }
 
-func NewController(storage *memory.Storage, args *config.Args, serverIsMaster bool) *Controller {
-	return &Controller{storage: storage, args: args, serverIsMaster: serverIsMaster}
+func NewController(storage *memory.Storage, args *config.Args, replicationInfo *replication.Info) *Controller {
+	return &Controller{storage: storage, args: args, replicationInfo: replicationInfo}
 }
 
 func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn) {
