@@ -21,6 +21,8 @@ func NewReplicaServer(args *config.Args) *ReplicaServer {
 
 func (rs *ReplicaServer) Start() {
 	fmt.Println("START REPLICA SERVER")
+	rs.initStorage()
+	rs.startExpiredKeysCleanup()
 }
 
 func (ms *ReplicaServer) IsMaster() bool {

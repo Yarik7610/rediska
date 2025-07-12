@@ -21,6 +21,10 @@ type ReplicaOfConfig struct {
 	Port int
 }
 
+func (replcfg *ReplicaOfConfig) String() string {
+	return fmt.Sprintf("%s %d", replcfg.Host, replcfg.Port)
+}
+
 func NewArgs() *Args {
 	host := flag.String("host", "0.0.0.0", "The host of redis server")
 	port := flag.Int("port", 6379, "The port of redis server")
