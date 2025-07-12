@@ -13,35 +13,29 @@ func (c *Controller) configGet(args []string) resp.Value {
 	}
 
 	arg := args[0]
+	value := []resp.Value{
+		resp.BulkString{Value: &arg},
+	}
 	switch arg {
 	case "host":
-		return resp.Array{Value: []resp.Value{
-			resp.BulkString{Value: &arg},
-			resp.BulkString{Value: &c.args.Host},
-		}}
+		value = append(value, resp.BulkString{Value: &c.args.Host})
 	case "port":
 		itoaPort := strconv.Itoa(c.args.Port)
-		return resp.Array{Value: []resp.Value{
-			resp.BulkString{Value: &arg},
-			resp.BulkString{Value: &itoaPort},
-		}}
+		value = append(value, resp.BulkString{Value: &itoaPort})
 	case "replicaof":
-		replicaOfString := c.args.ReplicaOf.String()
-		return resp.Array{Value: []resp.Value{
-			resp.BulkString{Value: &arg},
-			resp.BulkString{Value: &replicaOfString},
-		}}
+		var replicaOfString *string
+		if c.args.ReplicaOf != nil {
+			str := c.args.ReplicaOf.String()
+			replicaOfString = &str
+		}
+		value = append(value, resp.BulkString{Value: replicaOfString})
 	case "dir":
-		return resp.Array{Value: []resp.Value{
-			resp.BulkString{Value: &arg},
-			resp.BulkString{Value: &c.args.DBDir},
-		}}
+		value = append(value, resp.BulkString{Value: &c.args.DBDir})
 	case "dbfilename":
-		return resp.Array{Value: []resp.Value{
-			resp.BulkString{Value: &arg},
-			resp.BulkString{Value: &c.args.DBFilename},
-		}}
+		value = append(value, resp.BulkString{Value: &c.args.DBFilename})
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("CONFIG GET command unknown arg: %s", arg)}
 	}
+
+	return resp.Array{Value: value}
 }
