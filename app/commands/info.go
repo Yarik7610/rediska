@@ -28,6 +28,6 @@ func replicationInfo(c *Controller) (string, error) {
 	if c.serverIsMaster {
 		return "role:master", nil
 	} else {
-		return "", fmt.Errorf("replica replication info isn't supported")
+		return "role:slave", nil
 	}
 }
