@@ -11,13 +11,13 @@ import (
 )
 
 type Controller struct {
-	storage  *memory.Storage
-	args     *config.Args
-	isMaster bool
+	storage        *memory.Storage
+	args           *config.Args
+	serverIsMaster bool
 }
 
-func NewController(storage *memory.Storage, args *config.Args, isMaster bool) *Controller {
-	return &Controller{storage: storage, args: args, isMaster: isMaster}
+func NewController(storage *memory.Storage, args *config.Args, serverIsMaster bool) *Controller {
+	return &Controller{storage: storage, args: args, serverIsMaster: serverIsMaster}
 }
 
 func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn) {
@@ -70,6 +70,8 @@ func (c *Controller) handleArrayCommand(unit resp.Array) resp.Value {
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command CONFIG '%s'", secondCommand)}
 	case "KEYS":
 		return c.keys(args)
+	case "INFO":
+		return c.info(args)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
