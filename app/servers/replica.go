@@ -1,4 +1,4 @@
-package state
+package servers
 
 import (
 	"fmt"
@@ -11,25 +11,25 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-type replicaServer struct {
-	*baseServer
+type Replica struct {
+	*Base
 	masterConn net.Conn
 }
 
-func newReplicaServer(args *config.Args) *replicaServer {
-	rs := &replicaServer{
-		baseServer: newBaseServer(args),
+func newReplica(args *config.Args) *Replica {
+	r := &Replica{
+		Base: newBase(args),
 	}
-	rs.ReplicationInfo = newReplicaInfo()
-	rs.CommandController = commands.NewController(rs.Storage, rs.Args, rs.ReplicationInfo)
-	return rs
+	r.ReplicationInfo = newReplicaInfo()
+	r.CommandController = commands.NewController(r.Storage, r.Args, r.ReplicationInfo)
+	return r
 }
 
-func (rs *replicaServer) Start() {
+func (r *Replica) Start() {
 	fmt.Println("START REPLICA SERVER")
-	rs.initStorage()
-	rs.connectToMaster()
-	rs.acceptClientConnections()
+	r.initStorage()
+	r.connectToMaster()
+	r.acceptClientConnections()
 }
 
 func newReplicaInfo() *replication.Info {
@@ -40,23 +40,23 @@ func newReplicaInfo() *replication.Info {
 	}
 }
 
-func (rs *replicaServer) connectToMaster() {
-	rs.dialMaster()
-	rs.processMasterHandshake()
+func (r *Replica) connectToMaster() {
+	r.dialMaster()
+	r.processMasterHandshake()
 }
 
-func (rs *replicaServer) dialMaster() {
-	address := fmt.Sprintf("%s:%d", rs.Args.ReplicaOf.Host, rs.Args.ReplicaOf.Port)
+func (r *Replica) dialMaster() {
+	address := fmt.Sprintf("%s:%d", r.Args.ReplicaOf.Host, r.Args.ReplicaOf.Port)
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		log.Fatalf("Failed to dial master address: %s\n", address)
 	}
-	rs.masterConn = conn
+	r.masterConn = conn
 }
 
-func (rs *replicaServer) processMasterHandshake() {
+func (r *Replica) processMasterHandshake() {
 	pingCommand := resp.Array{Value: []resp.Value{resp.BulkString{Value: resp.StrPtr("PING")}}}
-	err := rs.CommandController.EncodeAndWrite(pingCommand, rs.masterConn)
+	err := r.CommandController.Write(pingCommand, r.masterConn)
 	if err != nil {
 		log.Fatalf("Master handshake PING (1/3) error: %s\n", err)
 	}

@@ -1,4 +1,4 @@
-package state
+package servers
 
 import (
 	"errors"
@@ -16,44 +16,32 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func SpawnServer(args *config.Args) Server {
-	if args.ReplicaOf == nil {
-		return newMasterServer(args)
-	} else {
-		return newReplicaServer(args)
-	}
-}
-
-type Server interface {
-	Start()
-}
-
-type baseServer struct {
+type Base struct {
 	Storage           *memory.Storage
 	RESPController    *resp.Controller
-	Args              *config.Args
 	CommandController *commands.Controller
+	Args              *config.Args
 	ReplicationInfo   *replication.Info
 }
 
-func newBaseServer(args *config.Args) *baseServer {
-	return &baseServer{
+func newBase(args *config.Args) *Base {
+	return &Base{
 		Storage:        memory.NewStorage(),
 		RESPController: resp.NewController(),
 		Args:           args,
 	}
 }
 
-func (s *baseServer) initStorage() {
-	if s.Args.DBDir == "" || s.Args.DBFilename == "" {
+func (base *Base) initStorage() {
+	if base.Args.DBDir == "" || base.Args.DBFilename == "" {
 		return
 	}
 
-	if !rdb.IsFileExists(s.Args.DBDir, s.Args.DBFilename) {
+	if !rdb.IsFileExists(base.Args.DBDir, base.Args.DBFilename) {
 		return
 	}
 
-	b, err := rdb.ReadRDB(s.Args.DBDir, s.Args.DBFilename)
+	b, err := rdb.ReadRDB(base.Args.DBDir, base.Args.DBFilename)
 	if err != nil {
 		log.Printf("Skip RDB storage seed, RDB file read error: %v\n", err)
 		return
@@ -64,23 +52,23 @@ func (s *baseServer) initStorage() {
 		log.Printf("Skip RDB storage seed, RDB decode error: %v\n", err)
 		return
 	}
-	s.putRDBItemsIntoStorage(items)
+	base.putRDBItemsIntoStorage(items)
 }
 
-func (s *baseServer) putRDBItemsIntoStorage(items map[string]memory.Item) {
+func (base *Base) putRDBItemsIntoStorage(items map[string]memory.Item) {
 	for key, item := range items {
 		if memory.ItemHasExpiration(&item) {
 			if !memory.ItemExpired(&item) {
-				s.Storage.SetWithExpiry(key, item.Value, item.Expires)
+				base.Storage.SetWithExpiry(key, item.Value, item.Expires)
 			}
 		} else {
-			s.Storage.Set(key, item.Value)
+			base.Storage.Set(key, item.Value)
 		}
 	}
 }
 
-func (s *baseServer) acceptClientConnections() {
-	address := fmt.Sprintf("%s:%d", s.Args.Host, s.Args.Port)
+func (base *Base) acceptClientConnections() {
+	address := fmt.Sprintf("%s:%d", base.Args.Host, base.Args.Port)
 
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
@@ -95,11 +83,11 @@ func (s *baseServer) acceptClientConnections() {
 			continue
 		}
 
-		go s.handleClient(conn)
+		go base.handleClient(conn)
 	}
 }
 
-func (s *baseServer) handleClient(conn net.Conn) {
+func (base *Base) handleClient(conn net.Conn) {
 	defer conn.Close()
 
 	for {
@@ -114,17 +102,17 @@ func (s *baseServer) handleClient(conn net.Conn) {
 			return
 		}
 
-		value, err := s.RESPController.Decode(b[:n])
+		value, err := base.RESPController.Decode(b[:n])
 		if err != nil {
 			fmt.Fprintf(conn, "RESP controller decode error: %v\n", err)
 			continue
 		}
 
-		s.CommandController.HandleCommand(value, conn)
+		base.CommandController.HandleCommand(value, conn)
 	}
 }
 
-func (s *baseServer) startExpiredKeysCleanup() {
+func (s *Base) startExpiredKeysCleanup() {
 	ticker := time.NewTicker(1 * time.Hour)
 
 	go func() {

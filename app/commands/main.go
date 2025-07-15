@@ -23,14 +23,14 @@ func NewController(storage *memory.Storage, args *config.Args, replicationInfo *
 
 func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn) error {
 	response := c.handleCommand(unit)
-	err := c.EncodeAndWrite(response, conn)
+	err := c.Write(response, conn)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Controller) EncodeAndWrite(unit resp.Value, conn net.Conn) error {
+func (c *Controller) Write(unit resp.Value, conn net.Conn) error {
 	encoded, err := unit.Encode()
 	if err != nil {
 		fmt.Fprintf(conn, "-ERR encode error: %v\r\n", err)
@@ -82,6 +82,8 @@ func (c *Controller) handleArrayCommand(unit resp.Array) resp.Value {
 		return c.keys(args)
 	case "INFO":
 		return c.info(args)
+	case "REPLCONF":
+		return c.replconf(args)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
