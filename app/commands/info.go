@@ -14,7 +14,7 @@ func (c *Controller) info(args []string) resp.Value {
 	section := args[0]
 	switch section {
 	case "replication":
-		replicationInfo := c.replicationInfo.String()
+		replicationInfo := c.replication.Info().String()
 		return resp.BulkString{Value: &replicationInfo}
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("INFO unsupported section: %s", section)}

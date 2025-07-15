@@ -12,17 +12,17 @@ import (
 )
 
 type Controller struct {
-	storage         *memory.Storage
-	args            *config.Args
-	replicationInfo *replication.Info
+	storage     *memory.Storage
+	args        *config.Args
+	replication replication.Replication
 }
 
-func NewController(storage *memory.Storage, args *config.Args, replicationInfo *replication.Info) *Controller {
-	return &Controller{storage: storage, args: args, replicationInfo: replicationInfo}
+func NewController(storage *memory.Storage, args *config.Args, replication replication.Replication) *Controller {
+	return &Controller{storage: storage, args: args, replication: replication}
 }
 
 func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn) error {
-	response := c.handleCommand(unit)
+	response := c.handleCommand(unit, conn)
 	err := c.Write(response, conn)
 	if err != nil {
 		return err
@@ -36,14 +36,15 @@ func (c *Controller) Write(unit resp.Value, conn net.Conn) error {
 		fmt.Fprintf(conn, "-ERR encode error: %v\r\n", err)
 		return err
 	}
+	fmt.Printf("WRITING TO %s: %s\n", conn.RemoteAddr(), encoded) // или log.Println
 	conn.Write(encoded)
 	return nil
 }
 
-func (c *Controller) handleCommand(unit resp.Value) resp.Value {
+func (c *Controller) handleCommand(unit resp.Value, conn net.Conn) resp.Value {
 	switch u := unit.(type) {
 	case resp.Array:
-		return c.handleArrayCommand(u)
+		return c.handleArrayCommand(u, conn)
 	case resp.SimpleString:
 		return c.handleSimpleStringCommand(u)
 	default:
@@ -51,7 +52,7 @@ func (c *Controller) handleCommand(unit resp.Value) resp.Value {
 	}
 }
 
-func (c *Controller) handleArrayCommand(unit resp.Array) resp.Value {
+func (c *Controller) handleArrayCommand(unit resp.Array, conn net.Conn) resp.Value {
 	if len(unit.Value) == 0 {
 		return resp.SimpleError{Value: "empty RESP array"}
 	}
@@ -83,7 +84,7 @@ func (c *Controller) handleArrayCommand(unit resp.Array) resp.Value {
 	case "INFO":
 		return c.info(args)
 	case "REPLCONF":
-		return c.replconf(args)
+		return c.replconf(args, conn)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}

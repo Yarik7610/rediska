@@ -2,6 +2,7 @@ package servers
 
 import (
 	"fmt"
+	"log"
 	"net"
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
@@ -19,8 +20,7 @@ func newMaster(args *config.Args) *Master {
 		Base:     newBase(args),
 		replicas: make(map[string]net.Conn),
 	}
-	m.ReplicationInfo = newMasterInfo()
-	m.CommandController = commands.NewController(m.Storage, m.Args, m.ReplicationInfo)
+	m.CommandController = commands.NewController(m.Storage, m.Args, m)
 	return m
 }
 
@@ -32,10 +32,11 @@ func (m *Master) Start() {
 }
 
 func (m *Master) AddReplicaConn(addr string, replicaConn net.Conn) {
+	log.Println("ADDR TO ADD TO TABLE", addr)
 	m.replicas[addr] = replicaConn
 }
 
-func newMasterInfo() *replication.Info {
+func (m *Master) Info() *replication.Info {
 	return &replication.Info{
 		Role:             "master",
 		MasterReplID:     replication.GenerateReplicationId(),

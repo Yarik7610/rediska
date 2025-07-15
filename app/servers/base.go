@@ -12,7 +12,6 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/persistence/rdb"
-	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
@@ -21,7 +20,6 @@ type Base struct {
 	RESPController    *resp.Controller
 	CommandController *commands.Controller
 	Args              *config.Args
-	ReplicationInfo   *replication.Info
 }
 
 func newBase(args *config.Args) *Base {
@@ -108,16 +106,32 @@ func (base *Base) handleClient(conn net.Conn) {
 			continue
 		}
 
+		fmt.Printf("RECEIVED VALUE: %+v\n", value)
+		arr, ok := value.(resp.Array)
+		if !ok {
+			log.Printf("Expected RESP Array, got: %T\n", value)
+			return
+		}
+
+		for i, v := range arr.Value {
+			switch val := v.(type) {
+			case resp.BulkString:
+				fmt.Printf("Arg %d: %s\n", i, *val.Value)
+			default:
+				fmt.Printf("Arg %d: unexpected type: %T\n", i, v)
+			}
+		}
+
 		base.CommandController.HandleCommand(value, conn)
 	}
 }
 
-func (s *Base) startExpiredKeysCleanup() {
+func (base *Base) startExpiredKeysCleanup() {
 	ticker := time.NewTicker(1 * time.Hour)
 
 	go func() {
 		for range ticker.C {
-			s.Storage.CleanExpiredKeys()
+			base.Storage.CleanExpiredKeys()
 		}
 	}()
 }
