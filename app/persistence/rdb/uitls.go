@@ -6,26 +6,26 @@ import (
 )
 
 func (dec *decoder) traverseUInt64() (uint64, error) {
-	num, err := dec.traverseXBytes(8)
+	num, err := dec.traverseUintXBytes(8)
 	return num, err
 }
 
 func (dec *decoder) traverseUInt32() (uint32, error) {
-	num, err := dec.traverseXBytes(4)
+	num, err := dec.traverseUintXBytes(4)
 	return uint32(num), err
 }
 
 func (dec *decoder) traverseUInt16() (uint16, error) {
-	num, err := dec.traverseXBytes(2)
+	num, err := dec.traverseUintXBytes(2)
 	return uint16(num), err
 }
 
 func (dec *decoder) traverseUInt8() (uint8, error) {
-	num, err := dec.traverseXBytes(1)
+	num, err := dec.traverseUintXBytes(1)
 	return uint8(num), err
 }
 
-func (dec *decoder) traverseXBytes(byteCount int) (uint64, error) {
+func (dec *decoder) traverseUintXBytes(byteCount int) (uint64, error) {
 	if dec.len <= dec.pos+byteCount {
 		return 0, fmt.Errorf("traverseUInt%d: not enough bytes, length is %d, pos is %d", byteCount*8, dec.len, dec.pos)
 	}

@@ -9,26 +9,30 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 )
 
-type ReplicaServer struct {
-	*BaseServer
+type replicaServer struct {
+	*baseServer
 }
 
-func NewReplicaServer(args *config.Args, listener net.Listener) *ReplicaServer {
-	rs := &ReplicaServer{
-		BaseServer: NewBaseServer(args, listener),
+func newReplicaServer(args *config.Args, listener net.Listener) *replicaServer {
+	rs := &replicaServer{
+		baseServer: newBaseServer(args, listener),
 	}
-	rs.ReplicationInfo = replication.NewReplicaInfo()
+	rs.ReplicationInfo = newReplicaInfo()
 	rs.CommandController = commands.NewController(rs.Storage, rs.Args, rs.ReplicationInfo)
 	return rs
 }
 
-func (rs *ReplicaServer) Start() {
+func (rs *replicaServer) Start() {
 	fmt.Println("START REPLICA SERVER")
 	rs.initStorage()
 	rs.acceptConnections()
 	rs.startExpiredKeysCleanup()
 }
 
-func (ms *ReplicaServer) IsMaster() bool {
-	return false
+func newReplicaInfo() *replication.Info {
+	return &replication.Info{
+		Role:             "slave",
+		MasterReplID:     replication.GenerateReplicationId(),
+		MasterReplOffset: 0,
+	}
 }

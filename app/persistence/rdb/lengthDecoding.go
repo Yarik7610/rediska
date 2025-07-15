@@ -25,7 +25,7 @@ func (dec *decoder) decodeLength() (int, bool, error) {
 		return int(len), false, nil
 	case 3:
 		remainingBits := lenByte & 0x3F
-		val, err := dec.traverseIntegerString(remainingBits)
+		val, err := dec.traverseSpecialString(remainingBits)
 		return val, true, err
 	}
 	return 0, false, fmt.Errorf("invalid length decode format")

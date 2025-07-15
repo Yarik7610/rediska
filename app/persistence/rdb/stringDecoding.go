@@ -24,7 +24,7 @@ func (dec *decoder) decodeString() (string, error) {
 	return str, nil
 }
 
-func (dec *decoder) traverseIntegerString(remainingBits uint8) (int, error) {
+func (dec *decoder) traverseSpecialString(remainingBits uint8) (int, error) {
 	switch remainingBits {
 	case 0:
 		value, err := dec.traverseUInt8()

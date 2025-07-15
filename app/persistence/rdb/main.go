@@ -66,17 +66,7 @@ const (
 )
 
 const (
-	STRING_ENCODING             = 0
-	LIST_ENCODING               = 1
-	SET_ENCODING                = 2
-	SORTED_SET_ENCODING         = 3
-	HASH_ENCODING               = 4
-	ZIPMAP_ENCODING             = 9
-	ZIPLIST_ENCODING            = 10
-	INTSET_ENCODING             = 11
-	SORTED_SET_ZIPLIST_ENCODING = 12
-	HASHMAP_ZIPLIST_ENCODING    = 13
-	LIST_QUICKLIST_ENCODING     = 14
+	STRING_ENCODING = 0
 )
 
 func IsFileExists(dir, filename string) bool {

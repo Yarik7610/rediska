@@ -16,15 +16,19 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-type Server interface {
-	Start()
-	IsMaster() bool
-
-	DecodeRESP(data []byte) (resp.Value, error)
-	HandleCommand(value resp.Value, conn net.Conn)
+func SpawnServer(args *config.Args, listener net.Listener) Server {
+	if args.ReplicaOf == nil {
+		return newMasterServer(args, listener)
+	} else {
+		return newReplicaServer(args, listener)
+	}
 }
 
-type BaseServer struct {
+type Server interface {
+	Start()
+}
+
+type baseServer struct {
 	Listener          net.Listener
 	Storage           *memory.Storage
 	RESPController    *resp.Controller
@@ -33,8 +37,8 @@ type BaseServer struct {
 	ReplicationInfo   *replication.Info
 }
 
-func NewBaseServer(args *config.Args, listener net.Listener) *BaseServer {
-	return &BaseServer{
+func newBaseServer(args *config.Args, listener net.Listener) *baseServer {
+	return &baseServer{
 		Listener:       listener,
 		Storage:        memory.NewStorage(),
 		RESPController: resp.NewController(),
@@ -42,24 +46,7 @@ func NewBaseServer(args *config.Args, listener net.Listener) *BaseServer {
 	}
 }
 
-func SpawnServer(args *config.Args, listener net.Listener) Server {
-	if args.ReplicaOf == nil {
-		return NewMasterServer(args, listener)
-	} else {
-		return NewReplicaServer(args, listener)
-	}
-}
-
-func (s *BaseServer) DecodeRESP(b []byte) (resp.Value, error) {
-	value, err := s.RESPController.Decode(b)
-	return value, err
-}
-
-func (s *BaseServer) HandleCommand(value resp.Value, conn net.Conn) {
-	s.CommandController.HandleCommand(value, conn)
-}
-
-func (s *BaseServer) initStorage() {
+func (s *baseServer) initStorage() {
 	if s.Args.DBDir == "" || s.Args.DBFilename == "" {
 		return
 	}
@@ -82,7 +69,7 @@ func (s *BaseServer) initStorage() {
 	s.putRDBItemsIntoStorage(items)
 }
 
-func (s *BaseServer) putRDBItemsIntoStorage(items map[string]memory.Item) {
+func (s *baseServer) putRDBItemsIntoStorage(items map[string]memory.Item) {
 	for key, item := range items {
 		if memory.ItemHasExpiration(&item) {
 			if !memory.ItemExpired(&item) {
@@ -94,7 +81,7 @@ func (s *BaseServer) putRDBItemsIntoStorage(items map[string]memory.Item) {
 	}
 }
 
-func (s *BaseServer) acceptConnections() {
+func (s *baseServer) acceptConnections() {
 	for {
 		conn, err := s.Listener.Accept()
 		if err != nil {
@@ -106,7 +93,7 @@ func (s *BaseServer) acceptConnections() {
 	}
 }
 
-func (s *BaseServer) handleClient(conn net.Conn) {
+func (s *baseServer) handleClient(conn net.Conn) {
 	defer conn.Close()
 
 	for {
@@ -121,17 +108,17 @@ func (s *BaseServer) handleClient(conn net.Conn) {
 			return
 		}
 
-		value, err := s.DecodeRESP(b[:n])
+		value, err := s.RESPController.Decode(b[:n])
 		if err != nil {
 			fmt.Fprintf(conn, "RESP controller decode error: %v\n", err)
 			continue
 		}
 
-		s.HandleCommand(value, conn)
+		s.CommandController.HandleCommand(value, conn)
 	}
 }
 
-func (s *BaseServer) startExpiredKeysCleanup() {
+func (s *baseServer) startExpiredKeysCleanup() {
 	ticker := time.NewTicker(1 * time.Hour)
 
 	go func() {
