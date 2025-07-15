@@ -16,11 +16,11 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func SpawnServer(args *config.Args, listener net.Listener) Server {
+func SpawnServer(args *config.Args) Server {
 	if args.ReplicaOf == nil {
-		return newMasterServer(args, listener)
+		return newMasterServer(args)
 	} else {
-		return newReplicaServer(args, listener)
+		return newReplicaServer(args)
 	}
 }
 
@@ -29,7 +29,6 @@ type Server interface {
 }
 
 type baseServer struct {
-	Listener          net.Listener
 	Storage           *memory.Storage
 	RESPController    *resp.Controller
 	Args              *config.Args
@@ -37,9 +36,8 @@ type baseServer struct {
 	ReplicationInfo   *replication.Info
 }
 
-func newBaseServer(args *config.Args, listener net.Listener) *baseServer {
+func newBaseServer(args *config.Args) *baseServer {
 	return &baseServer{
-		Listener:       listener,
 		Storage:        memory.NewStorage(),
 		RESPController: resp.NewController(),
 		Args:           args,
@@ -81,9 +79,17 @@ func (s *baseServer) putRDBItemsIntoStorage(items map[string]memory.Item) {
 	}
 }
 
-func (s *baseServer) acceptConnections() {
+func (s *baseServer) acceptClientConnections() {
+	address := fmt.Sprintf("%s:%d", s.Args.Host, s.Args.Port)
+
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Fatalf("Failed to bind to address: %s\n", address)
+	}
+	defer listener.Close()
+
 	for {
-		conn, err := s.Listener.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Error accepting connection: %v\n", err)
 			continue

@@ -21,14 +21,23 @@ func NewController(storage *memory.Storage, args *config.Args, replicationInfo *
 	return &Controller{storage: storage, args: args, replicationInfo: replicationInfo}
 }
 
-func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn) {
+func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn) error {
 	response := c.handleCommand(unit)
-	encoded, err := response.Encode()
+	err := c.EncodeAndWrite(response, conn)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Controller) EncodeAndWrite(unit resp.Value, conn net.Conn) error {
+	encoded, err := unit.Encode()
 	if err != nil {
 		fmt.Fprintf(conn, "-ERR encode error: %v\r\n", err)
-		return
+		return err
 	}
 	conn.Write(encoded)
+	return nil
 }
 
 func (c *Controller) handleCommand(unit resp.Value) resp.Value {

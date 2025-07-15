@@ -15,7 +15,7 @@ func TestArrayEncode(t *testing.T) {
 	}{
 		{
 			Name:        "Simple Array with mixed types",
-			In:          Array{Value: []Value{BulkString{Value: stringPtr("hello")}, Integer{Value: 123}, SimpleString{Value: "PONG"}}},
+			In:          Array{Value: []Value{BulkString{Value: StrPtr("hello")}, Integer{Value: 123}, SimpleString{Value: "PONG"}}},
 			Expected:    []byte("*3\r\n$5\r\nhello\r\n:123\r\n+PONG\r\n"),
 			ShouldError: false,
 		},
@@ -33,13 +33,13 @@ func TestArrayEncode(t *testing.T) {
 		},
 		{
 			Name:        "Array with single element",
-			In:          Array{Value: []Value{BulkString{Value: stringPtr("A")}}},
+			In:          Array{Value: []Value{BulkString{Value: StrPtr("A")}}},
 			Expected:    []byte("*1\r\n$1\r\nA\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Array with multiple strings",
-			In:          Array{Value: []Value{BulkString{Value: stringPtr("hello")}, BulkString{Value: stringPtr("world")}}},
+			In:          Array{Value: []Value{BulkString{Value: StrPtr("hello")}, BulkString{Value: StrPtr("world")}}},
 			Expected:    []byte("*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n"),
 			ShouldError: false,
 		},
@@ -57,7 +57,7 @@ func TestArrayEncode(t *testing.T) {
 		},
 		{
 			Name:        "Array with nested Array",
-			In:          Array{Value: []Value{BulkString{Value: stringPtr("test")}, Array{Value: []Value{BulkString{Value: stringPtr("inner")}, Integer{Value: 42}}}}},
+			In:          Array{Value: []Value{BulkString{Value: StrPtr("test")}, Array{Value: []Value{BulkString{Value: StrPtr("inner")}, Integer{Value: 42}}}}},
 			Expected:    []byte("*2\r\n$4\r\ntest\r\n*2\r\n$5\r\ninner\r\n:42\r\n"),
 			ShouldError: false,
 		},
@@ -69,13 +69,13 @@ func TestArrayEncode(t *testing.T) {
 		},
 		{
 			Name:        "Array with special characters in bulk string",
-			In:          Array{Value: []Value{BulkString{Value: stringPtr("hello!@#$%")}, BulkString{Value: stringPtr("test\t123")}}},
+			In:          Array{Value: []Value{BulkString{Value: StrPtr("hello!@#$%")}, BulkString{Value: StrPtr("test\t123")}}},
 			Expected:    []byte("*2\r\n$10\r\nhello!@#$%\r\n$8\r\ntest\t123\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "Array with bulk string containing CRLF",
-			In:          Array{Value: []Value{BulkString{Value: stringPtr("hello\r\nworld")}}},
+			In:          Array{Value: []Value{BulkString{Value: StrPtr("hello\r\nworld")}}},
 			Expected:    []byte("*1\r\n$12\r\nhello\r\nworld\r\n"),
 			ShouldError: false,
 		},
@@ -114,7 +114,7 @@ func TestArrayDecode(t *testing.T) {
 			Name:         "Simple Array with mixed types",
 			In:           []byte("*3\r\n$5\r\nhello\r\n:123\r\n+PONG\r\n"),
 			ExpectedRest: []byte{},
-			Expected:     Array{Value: []Value{BulkString{Value: stringPtr("hello")}, Integer{Value: 123}, SimpleString{Value: "PONG"}}},
+			Expected:     Array{Value: []Value{BulkString{Value: StrPtr("hello")}, Integer{Value: 123}, SimpleString{Value: "PONG"}}},
 			ShouldError:  false,
 		},
 		{
@@ -135,14 +135,14 @@ func TestArrayDecode(t *testing.T) {
 			Name:         "Array with single element",
 			In:           []byte("*1\r\n$1\r\nA\r\n"),
 			ExpectedRest: []byte{},
-			Expected:     Array{Value: []Value{BulkString{Value: stringPtr("A")}}},
+			Expected:     Array{Value: []Value{BulkString{Value: StrPtr("A")}}},
 			ShouldError:  false,
 		},
 		{
 			Name:         "Array with multiple strings",
 			In:           []byte("*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n"),
 			ExpectedRest: []byte{},
-			Expected:     Array{Value: []Value{BulkString{Value: stringPtr("hello")}, BulkString{Value: stringPtr("world")}}},
+			Expected:     Array{Value: []Value{BulkString{Value: StrPtr("hello")}, BulkString{Value: StrPtr("world")}}},
 			ShouldError:  false,
 		},
 		{
@@ -163,7 +163,7 @@ func TestArrayDecode(t *testing.T) {
 			Name:         "Array with nested Array",
 			In:           []byte("*2\r\n$4\r\ntest\r\n*2\r\n$5\r\ninner\r\n:42\r\n"),
 			ExpectedRest: []byte{},
-			Expected:     Array{Value: []Value{BulkString{Value: stringPtr("test")}, Array{Value: []Value{BulkString{Value: stringPtr("inner")}, Integer{Value: 42}}}}},
+			Expected:     Array{Value: []Value{BulkString{Value: StrPtr("test")}, Array{Value: []Value{BulkString{Value: StrPtr("inner")}, Integer{Value: 42}}}}},
 			ShouldError:  false,
 		},
 		{
@@ -177,21 +177,21 @@ func TestArrayDecode(t *testing.T) {
 			Name:         "Array with special characters",
 			In:           []byte("*2\r\n$10\r\nhello!@#$%\r\n$8\r\ntest\t123\r\n"),
 			ExpectedRest: []byte{},
-			Expected:     Array{Value: []Value{BulkString{Value: stringPtr("hello!@#$%")}, BulkString{Value: stringPtr("test\t123")}}},
+			Expected:     Array{Value: []Value{BulkString{Value: StrPtr("hello!@#$%")}, BulkString{Value: StrPtr("test\t123")}}},
 			ShouldError:  false,
 		},
 		{
 			Name:         "Array with string containing CRLF",
 			In:           []byte("*1\r\n$12\r\nhello\r\nworld\r\n"),
 			ExpectedRest: []byte{},
-			Expected:     Array{Value: []Value{BulkString{Value: stringPtr("hello\r\nworld")}}},
+			Expected:     Array{Value: []Value{BulkString{Value: StrPtr("hello\r\nworld")}}},
 			ShouldError:  false,
 		},
 		{
 			Name:         "Array with remaining bytes",
 			In:           []byte("*1\r\n$5\r\nhello\r\n:123\r\n"),
 			ExpectedRest: []byte(":123\r\n"),
-			Expected:     Array{Value: []Value{BulkString{Value: stringPtr("hello")}}},
+			Expected:     Array{Value: []Value{BulkString{Value: StrPtr("hello")}}},
 			ShouldError:  false,
 		},
 		{

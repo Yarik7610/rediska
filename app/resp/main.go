@@ -39,3 +39,7 @@ func (rc *Controller) Decode(b []byte) (Value, error) {
 
 	return res, err
 }
+
+func StrPtr(s string) *string {
+	return &s
+}

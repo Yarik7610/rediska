@@ -14,9 +14,9 @@ type masterServer struct {
 	Replicas map[string]net.Conn
 }
 
-func newMasterServer(args *config.Args, listener net.Listener) *masterServer {
+func newMasterServer(args *config.Args) *masterServer {
 	ms := &masterServer{
-		baseServer: newBaseServer(args, listener),
+		baseServer: newBaseServer(args),
 		Replicas:   make(map[string]net.Conn),
 	}
 	ms.ReplicationInfo = newMasterInfo()
@@ -27,7 +27,7 @@ func newMasterServer(args *config.Args, listener net.Listener) *masterServer {
 func (ms *masterServer) Start() {
 	fmt.Println("START MASTER SERVER")
 	ms.initStorage()
-	ms.acceptConnections()
+	ms.acceptClientConnections()
 	ms.startExpiredKeysCleanup()
 }
 
