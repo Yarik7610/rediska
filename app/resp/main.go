@@ -1,6 +1,9 @@
 package resp
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 type Value interface {
 	Encode() ([]byte, error)
@@ -32,6 +35,24 @@ func (*Controller) Decode(b []byte) (rest []byte, value Value, err error) {
 		return SimpleError{}.Decode(b)
 	default:
 		return nil, nil, fmt.Errorf("detected unknown RESP type")
+	}
+}
+
+func CreateArray(args ...string) Array {
+	var values []Value
+	for _, arg := range args {
+		values = append(values, BulkString{Value: StrPtr(arg)})
+	}
+	return Array{Value: values}
+}
+
+func AssertEqualSimpleString(value Value, raw string) {
+	v, ok := value.(SimpleString)
+	if !ok {
+		log.Fatalf("assertion failed: expected SimpleString, got: %T", value)
+	}
+	if v.Value != raw {
+		log.Fatalf("assertion failed: expected %s, got: %v", raw, v.Value)
 	}
 }
 

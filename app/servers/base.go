@@ -102,6 +102,7 @@ func (base *base) handleClient(conn net.Conn) {
 		}
 		buf = append(buf, tmp[:n]...)
 
+		//Reading all commands from buffer, if there is more than 1 command
 		for len(buf) > 0 {
 			rest, value, err := base.RESPController.Decode(buf)
 			if err != nil {

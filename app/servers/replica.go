@@ -40,13 +40,15 @@ func (*replica) Info() *replication.Info {
 	}
 }
 
-func (r *replica) ReadFromMaster() ([]byte, error) {
+func (r *replica) ReadValueFromMaster() (resp.Value, error) {
 	b := make([]byte, 1024)
 	n, err := r.masterConn.Read(b)
 	if err != nil {
 		return nil, err
 	}
-	return b[:n], nil
+	//Reading only first acceptable command from buffer, others are discarded
+	_, value, err := r.RESPController.Decode(b[:n])
+	return value, err
 }
 
 func (r *replica) connectToMaster() {
@@ -64,41 +66,26 @@ func (r *replica) dialMaster() {
 }
 
 func (r *replica) processMasterHandshake() {
-	pingCommand := resp.Array{Value: []resp.Value{resp.BulkString{Value: resp.StrPtr("PING")}}}
+	pingCommand := resp.CreateArray("PING")
 	err := r.CommandController.Write(pingCommand, r.masterConn)
 	if err != nil {
-		log.Fatalf("Master handshake PING (1/3) error: %s\n", err)
+		log.Fatalf("Master handshake PING (1/3) write error: %s\n", err)
 	}
 
-	pingResult, err := r.ReadFromMaster()
+	pingResult, err := r.ReadValueFromMaster()
 	if err != nil {
-		log.Fatalf("Master handshake PING (1/3) error: read from master error: %s\n", err)
+		log.Fatalf("Master handshake PING (1/3) read value from master error: %s\n", err)
 	}
-	_, value, err := r.RESPController.Decode(pingResult)
-	if err != nil {
-		log.Fatalf("Master handshake PING (1/3) error: decode error: %s", err)
-	}
-	v, ok := value.(resp.SimpleString)
-	if !ok || v.Value != "PONG" {
-		log.Fatalf("Master handshake PING (1/3) error: expected PONG, got: %v", value)
-	}
+	resp.AssertEqualSimpleString(pingResult, "PONG")
 
-	replconfCommand := resp.Array{Value: []resp.Value{
-		resp.BulkString{Value: resp.StrPtr("REPLCONF")},
-		resp.BulkString{Value: resp.StrPtr("listening-port")},
-		resp.BulkString{Value: resp.StrPtr(strconv.Itoa(r.Args.Port))},
-	}}
+	replconfCommand := resp.CreateArray("REPLCONF", "listening-port", strconv.Itoa(r.Args.Port))
 	err = r.CommandController.Write(replconfCommand, r.masterConn)
 	if err != nil {
-		log.Fatalf("Master handshake REPLCONF (2/3) error: %s\n", err)
+		log.Fatalf("Master handshake REPLCONF (2/3) write error: %s\n", err)
 	}
-	replconfCommand = resp.Array{Value: []resp.Value{
-		resp.BulkString{Value: resp.StrPtr("REPLCONF")},
-		resp.BulkString{Value: resp.StrPtr("capa")},
-		resp.BulkString{Value: resp.StrPtr("psync2")},
-	}}
+	replconfCommand = resp.CreateArray("REPLCONF", "capa", "psync2")
 	err = r.CommandController.Write(replconfCommand, r.masterConn)
 	if err != nil {
-		log.Fatalf("Master handshake REPLCONF (2/3) error: %s\n", err)
+		log.Fatalf("Master handshake REPLCONF (2/3) write error: %s\n", err)
 	}
 }
