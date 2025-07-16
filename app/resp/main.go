@@ -13,31 +13,26 @@ func NewController() *Controller {
 	return &Controller{}
 }
 
-func (rc *Controller) Decode(b []byte) (Value, error) {
+func (*Controller) Decode(b []byte) (rest []byte, value Value, err error) {
 	l := len(b)
 	if l == 0 {
-		return nil, fmt.Errorf("expected not fully empty string")
+		return nil, nil, fmt.Errorf("expected not fully empty string")
 	}
-
-	var res Value
-	var err error
 
 	switch b[0] {
 	case '*':
-		_, res, err = Array{}.Decode(b)
+		return Array{}.Decode(b)
 	case '$':
-		_, res, err = BulkString{}.Decode(b)
+		return BulkString{}.Decode(b)
 	case ':':
-		_, res, err = Integer{}.Decode(b)
+		return Integer{}.Decode(b)
 	case '+':
-		_, res, err = SimpleString{}.Decode(b)
+		return SimpleString{}.Decode(b)
 	case '-':
-		_, res, err = SimpleError{}.Decode(b)
+		return SimpleError{}.Decode(b)
 	default:
-		return nil, fmt.Errorf("detected unknown RESP type")
+		return nil, nil, fmt.Errorf("detected unknown RESP type")
 	}
-
-	return res, err
 }
 
 func StrPtr(s string) *string {

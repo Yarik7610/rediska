@@ -32,12 +32,21 @@ func (r *replica) Start() {
 	r.acceptClientConnections()
 }
 
-func (m *replica) Info() *replication.Info {
+func (*replica) Info() *replication.Info {
 	return &replication.Info{
 		Role:             "slave",
 		MasterReplID:     replication.GenerateReplicationId(),
 		MasterReplOffset: 0,
 	}
+}
+
+func (r *replica) ReadFromMaster() ([]byte, error) {
+	b := make([]byte, 1024)
+	n, err := r.masterConn.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
 }
 
 func (r *replica) connectToMaster() {
@@ -59,6 +68,19 @@ func (r *replica) processMasterHandshake() {
 	err := r.CommandController.Write(pingCommand, r.masterConn)
 	if err != nil {
 		log.Fatalf("Master handshake PING (1/3) error: %s\n", err)
+	}
+
+	pingResult, err := r.ReadFromMaster()
+	if err != nil {
+		log.Fatalf("Master handshake PING (1/3) error: read from master error: %s\n", err)
+	}
+	_, value, err := r.RESPController.Decode(pingResult)
+	if err != nil {
+		log.Fatalf("Master handshake PING (1/3) error: decode error: %s", err)
+	}
+	v, ok := value.(resp.SimpleString)
+	if !ok || v.Value != "PONG" {
+		log.Fatalf("Master handshake PING (1/3) error: expected PONG, got: %v", value)
 	}
 
 	replconfCommand := resp.Array{Value: []resp.Value{

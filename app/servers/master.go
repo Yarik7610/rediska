@@ -2,7 +2,6 @@ package servers
 
 import (
 	"fmt"
-	"log"
 	"net"
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
@@ -32,7 +31,6 @@ func (m *master) Start() {
 }
 
 func (m *master) AddReplicaConn(addr string, replicaConn net.Conn) {
-	log.Println("ADDR TO ADD TO TABLE", addr)
 	m.replicas[addr] = replicaConn
 }
 

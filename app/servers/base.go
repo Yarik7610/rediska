@@ -88,43 +88,32 @@ func (base *base) acceptClientConnections() {
 func (base *base) handleClient(conn net.Conn) {
 	defer conn.Close()
 
-	for {
-		b := make([]byte, 1024)
+	buf := make([]byte, 0, 4096)
+	tmp := make([]byte, 1024)
 
-		n, err := conn.Read(b)
+	for {
+		n, err := conn.Read(tmp)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return
 			}
-			log.Printf("Connnection read error: %v", err)
+			log.Printf("read error: %v", err)
 			return
 		}
+		buf = append(buf, tmp[:n]...)
 
-		value, err := base.RESPController.Decode(b[:n])
-		if err != nil {
-			fmt.Fprintf(conn, "RESP controller decode error: %v\n", err)
-			log.Printf("RESP controller decode error: %v\n", err)
-			continue
-		}
-
-		fmt.Printf("RECEIVED VALUE: %+v\n", value)
-
-		arr, ok := value.(resp.Array)
-		if !ok {
-			log.Printf("Expected RESP Array, got: %T\n", value)
-			return
-		}
-
-		for i, v := range arr.Value {
-			switch val := v.(type) {
-			case resp.BulkString:
-				fmt.Printf("Arg %d: %s\n", i, *val.Value)
-			default:
-				fmt.Printf("Arg %d: unexpected type: %T\n", i, v)
+		for len(buf) > 0 {
+			rest, value, err := base.RESPController.Decode(buf)
+			if err != nil {
+				log.Printf("decode error: %v", err)
+				fmt.Fprintf(conn, "-ERR %v\r\n", err)
+				return
 			}
-		}
 
-		base.CommandController.HandleCommand(value, conn)
+			buf = rest
+
+			base.CommandController.HandleCommand(value, conn)
+		}
 	}
 }
 

@@ -22,8 +22,8 @@ func NewController(storage *memory.Storage, args *config.Args, replication repli
 }
 
 func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn) error {
-	response := c.handleCommand(unit, conn)
-	err := c.Write(response, conn)
+	result := c.handleCommand(unit, conn)
+	err := c.Write(result, conn)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,6 @@ func (c *Controller) Write(unit resp.Value, conn net.Conn) error {
 		fmt.Fprintf(conn, "-ERR encode error: %v\r\n", err)
 		return err
 	}
-	fmt.Printf("WRITING TO %s: %s\n", conn.RemoteAddr(), encoded) // или log.Println
 	conn.Write(encoded)
 	return nil
 }
