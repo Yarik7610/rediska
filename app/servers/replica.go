@@ -17,6 +17,8 @@ type replica struct {
 	masterConn net.Conn
 }
 
+var _ replication.Replica = (*replica)(nil)
+
 func newReplica(args *config.Args) *replica {
 	r := &replica{
 		base: newBase(args),

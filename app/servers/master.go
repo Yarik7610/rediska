@@ -14,6 +14,8 @@ type master struct {
 	replicas map[string]net.Conn
 }
 
+var _ replication.Master = (*master)(nil)
+
 func newMaster(args *config.Args) *master {
 	m := &master{
 		base:     newBase(args),

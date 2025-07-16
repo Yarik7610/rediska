@@ -1,6 +1,8 @@
 package replication
 
+import "github.com/codecrafters-io/redis-starter-go/app/resp"
+
 type Replica interface {
-	Main
-	ReadValueFromMaster() ([]byte, error)
+	Base
+	ReadValueFromMaster() (resp.Value, error)
 }
