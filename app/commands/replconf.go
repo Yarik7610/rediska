@@ -32,7 +32,7 @@ func (c *Controller) replconf(args []string, conn net.Conn) resp.Value {
 			return resp.SimpleError{Value: fmt.Sprintf("REPLCONF master unsupported section: %s", section)}
 		}
 	case replication.Replica:
-		return resp.SimpleError{Value: fmt.Sprintf("REPLCONF replica unsupported section: %s", section)}
+		return resp.SimpleError{Value: fmt.Sprintf("REPLCONF isn't supported for replica: %s", section)}
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("REPLCONF command detected unknown type assertion: %T", r)}
 	}

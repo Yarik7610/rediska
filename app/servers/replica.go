@@ -70,6 +70,7 @@ func (r *replica) dialMaster() {
 func (r *replica) processMasterHandshake() {
 	r.processMasterHandshakePING()
 	r.processMasterHandshakeREPLCONF()
+	r.processMasterHandshakePSYNC()
 }
 
 func (r *replica) processMasterHandshakePING() {
@@ -102,4 +103,17 @@ func (r *replica) processMasterHandshakeREPLCONF() {
 		}
 		resp.AssertEqualSimpleString(replconfResult, "OK")
 	}
+}
+
+func (r *replica) processMasterHandshakePSYNC() {
+	psyncCommand := resp.CreateArray("PSYNC", "?", "-1")
+	err := r.CommandController.Write(psyncCommand, r.masterConn)
+	if err != nil {
+		log.Fatalf("Master handshake PSYNC (3/3) write error: %s\n", err)
+	}
+	_, err = r.ReadValueFromMaster()
+	if err != nil {
+		log.Fatalf("Master handshake PSYNC (3/3) read value from master error: %s\n", err)
+	}
+	// resp.AssertEqualSimpleString(psyncResult, "OK")
 }
