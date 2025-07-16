@@ -68,26 +68,38 @@ func (r *replica) dialMaster() {
 }
 
 func (r *replica) processMasterHandshake() {
+	r.processMasterHandshakePING()
+	r.processMasterHandshakeREPLCONF()
+}
+
+func (r *replica) processMasterHandshakePING() {
 	pingCommand := resp.CreateArray("PING")
 	err := r.CommandController.Write(pingCommand, r.masterConn)
 	if err != nil {
 		log.Fatalf("Master handshake PING (1/3) write error: %s\n", err)
 	}
-
 	pingResult, err := r.ReadValueFromMaster()
 	if err != nil {
 		log.Fatalf("Master handshake PING (1/3) read value from master error: %s\n", err)
 	}
 	resp.AssertEqualSimpleString(pingResult, "PONG")
+}
 
-	replconfCommand := resp.CreateArray("REPLCONF", "listening-port", strconv.Itoa(r.Args.Port))
-	err = r.CommandController.Write(replconfCommand, r.masterConn)
-	if err != nil {
-		log.Fatalf("Master handshake REPLCONF (2/3) write error: %s\n", err)
+func (r *replica) processMasterHandshakeREPLCONF() {
+	commands := []resp.Array{
+		resp.CreateArray("REPLCONF", "listening-port", strconv.Itoa(r.Args.Port)),
+		resp.CreateArray("REPLCONF", "capa", "psync2"),
 	}
-	replconfCommand = resp.CreateArray("REPLCONF", "capa", "psync2")
-	err = r.CommandController.Write(replconfCommand, r.masterConn)
-	if err != nil {
-		log.Fatalf("Master handshake REPLCONF (2/3) write error: %s\n", err)
+
+	for _, command := range commands {
+		err := r.CommandController.Write(command, r.masterConn)
+		if err != nil {
+			log.Fatalf("Master handshake REPLCONF (2/3) write error: %s\n", err)
+		}
+		replconfResult, err := r.ReadValueFromMaster()
+		if err != nil {
+			log.Fatalf("Master handshake REPLCONF (2/3) read value from master error: %s\n", err)
+		}
+		resp.AssertEqualSimpleString(replconfResult, "OK")
 	}
 }
