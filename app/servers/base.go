@@ -15,22 +15,22 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-type Base struct {
+type base struct {
 	Storage           *memory.Storage
 	RESPController    *resp.Controller
 	CommandController *commands.Controller
 	Args              *config.Args
 }
 
-func newBase(args *config.Args) *Base {
-	return &Base{
+func newBase(args *config.Args) *base {
+	return &base{
 		Storage:        memory.NewStorage(),
 		RESPController: resp.NewController(),
 		Args:           args,
 	}
 }
 
-func (base *Base) initStorage() {
+func (base *base) initStorage() {
 	if base.Args.DBDir == "" || base.Args.DBFilename == "" {
 		return
 	}
@@ -53,7 +53,7 @@ func (base *Base) initStorage() {
 	base.putRDBItemsIntoStorage(items)
 }
 
-func (base *Base) putRDBItemsIntoStorage(items map[string]memory.Item) {
+func (base *base) putRDBItemsIntoStorage(items map[string]memory.Item) {
 	for key, item := range items {
 		if memory.ItemHasExpiration(&item) {
 			if !memory.ItemExpired(&item) {
@@ -65,7 +65,7 @@ func (base *Base) putRDBItemsIntoStorage(items map[string]memory.Item) {
 	}
 }
 
-func (base *Base) acceptClientConnections() {
+func (base *base) acceptClientConnections() {
 	address := fmt.Sprintf("%s:%d", base.Args.Host, base.Args.Port)
 
 	listener, err := net.Listen("tcp", address)
@@ -85,7 +85,7 @@ func (base *Base) acceptClientConnections() {
 	}
 }
 
-func (base *Base) handleClient(conn net.Conn) {
+func (base *base) handleClient(conn net.Conn) {
 	defer conn.Close()
 
 	for {
@@ -103,10 +103,12 @@ func (base *Base) handleClient(conn net.Conn) {
 		value, err := base.RESPController.Decode(b[:n])
 		if err != nil {
 			fmt.Fprintf(conn, "RESP controller decode error: %v\n", err)
+			log.Printf("RESP controller decode error: %v\n", err)
 			continue
 		}
 
 		fmt.Printf("RECEIVED VALUE: %+v\n", value)
+
 		arr, ok := value.(resp.Array)
 		if !ok {
 			log.Printf("Expected RESP Array, got: %T\n", value)
@@ -126,7 +128,7 @@ func (base *Base) handleClient(conn net.Conn) {
 	}
 }
 
-func (base *Base) startExpiredKeysCleanup() {
+func (base *base) startExpiredKeysCleanup() {
 	ticker := time.NewTicker(1 * time.Hour)
 
 	go func() {

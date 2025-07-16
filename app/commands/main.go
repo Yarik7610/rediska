@@ -14,10 +14,10 @@ import (
 type Controller struct {
 	storage     *memory.Storage
 	args        *config.Args
-	replication replication.Replication
+	replication replication.Main
 }
 
-func NewController(storage *memory.Storage, args *config.Args, replication replication.Replication) *Controller {
+func NewController(storage *memory.Storage, args *config.Args, replication replication.Main) *Controller {
 	return &Controller{storage: storage, args: args, replication: replication}
 }
 

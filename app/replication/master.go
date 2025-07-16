@@ -3,6 +3,6 @@ package replication
 import "net"
 
 type Master interface {
-	Replication
+	Main
 	AddReplicaConn(addr string, replicaConn net.Conn)
 }

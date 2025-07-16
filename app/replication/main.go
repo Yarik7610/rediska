@@ -1,5 +1,5 @@
 package replication
 
-type Replication interface {
+type Main interface {
 	Info() *Info
 }

@@ -1,5 +1,5 @@
 package replication
 
 type Replica interface {
-	Replication
+	Main
 }
