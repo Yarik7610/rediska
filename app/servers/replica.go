@@ -33,10 +33,14 @@ func newReplica(args *config.Args) *replica {
 }
 
 func (r *replica) Start() {
+	ready := make(chan int)
+
 	fmt.Println("START REPLICA SERVER")
 	r.initStorage()
+	go r.acceptClientConnections(ready)
+	<-ready
+	close(ready)
 	r.ConnectToMaster()
-	r.acceptClientConnections()
 }
 
 func (r *replica) ConnectToMaster() {

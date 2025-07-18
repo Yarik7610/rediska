@@ -87,7 +87,7 @@ func (base *base) putRDBItemsIntoStorage(items map[string]memory.Item) {
 	}
 }
 
-func (base *base) acceptClientConnections() {
+func (base *base) acceptClientConnections(ready chan<- int) {
 	address := fmt.Sprintf("%s:%d", base.args.Host, base.args.Port)
 
 	listener, err := net.Listen("tcp", address)
@@ -95,6 +95,8 @@ func (base *base) acceptClientConnections() {
 		log.Fatalf("Failed to bind to address: %s\n", address)
 	}
 	defer listener.Close()
+
+	ready <- 1
 
 	for {
 		conn, err := listener.Accept()

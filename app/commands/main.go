@@ -99,3 +99,9 @@ func (c *Controller) handleSimpleStringCommand(unit resp.SimpleString) resp.Valu
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", unit.Value)}
 	}
 }
+
+func (c *Controller) propagate(commandAndArgs []string) {
+	if m, ok := c.replication.(replication.Master); ok {
+		m.Propagate(commandAndArgs)
+	}
+}

@@ -32,9 +32,13 @@ func newMaster(args *config.Args) *master {
 }
 
 func (m *master) Start() {
+	ready := make(chan int)
+
 	fmt.Println("START MASTER SERVER")
 	m.initStorage()
-	m.acceptClientConnections()
+	go m.acceptClientConnections(ready)
+	<-ready
+	close(ready)
 	m.startExpiredKeysCleanup()
 }
 
