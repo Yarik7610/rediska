@@ -36,8 +36,8 @@ func (c *Controller) Write(unit resp.Value, conn net.Conn) error {
 		fmt.Fprintf(conn, "-ERR encode error: %v\r\n", err)
 		return err
 	}
-	conn.Write(encoded)
-	return nil
+	_, err = conn.Write(encoded)
+	return err
 }
 
 func (c *Controller) handleCommand(unit resp.Value, conn net.Conn) resp.Value {

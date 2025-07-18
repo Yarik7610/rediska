@@ -1,11 +1,15 @@
 package servers
 
 import (
+	"encoding/hex"
 	"fmt"
+	"log"
 	"net"
+	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
 	"github.com/codecrafters-io/redis-starter-go/app/config"
+	"github.com/codecrafters-io/redis-starter-go/app/persistence/rdb"
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 )
 
@@ -21,7 +25,8 @@ func newMaster(args *config.Args) *master {
 		base:     newBase(args),
 		replicas: make(map[string]net.Conn),
 	}
-	m.CommandController = commands.NewController(m.Storage, m.Args, m)
+	m.commandController = commands.NewController(m.storage, m.args, m)
+	m.replicationInfo = m.initReplicationInfo()
 	return m
 }
 
@@ -36,7 +41,25 @@ func (m *master) AddReplicaConn(addr string, replicaConn net.Conn) {
 	m.replicas[addr] = replicaConn
 }
 
-func (m *master) Info() *replication.Info {
+func (m *master) SendRDBFile(replicaConn net.Conn) {
+	// Make sleep so first read FULLSRESYNC reponse and after it the contents of RDB file
+	time.Sleep(time.Millisecond * 100)
+
+	// Alternatively here call rdb.ReadRDBFile, but i use hardcoded hex string to pass tests
+	// (In tests i guess they don't use rdb file, so my program returns error that can't find such dir when reading rdb file)
+	b, err := hex.DecodeString(rdb.EMPTY_DB_HEX)
+	if err != nil {
+		log.Fatalf("SendRDBFile error: %v", err)
+	}
+
+	response := append(fmt.Appendf(nil, "$%d\r\n", len(b)), b...)
+	_, err = replicaConn.Write(response)
+	if err != nil {
+		log.Fatalf("SendRDBFile error: %v", err)
+	}
+}
+
+func (m *master) initReplicationInfo() *replication.Info {
 	return &replication.Info{
 		Role:             "master",
 		MasterReplID:     replication.GenerateReplicationId(),

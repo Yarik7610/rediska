@@ -65,9 +65,9 @@ const (
 	OP_AUX          = 0xFA
 )
 
-const (
-	STRING_ENCODING = 0
-)
+const STRING_ENCODING = 0
+
+const EMPTY_DB_HEX = "524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2"
 
 func IsFileExists(dir, filename string) bool {
 	path := filepath.Join(dir, filename)
@@ -78,7 +78,7 @@ func IsFileExists(dir, filename string) bool {
 	return false
 }
 
-func ReadRDB(dir, filename string) ([]byte, error) {
+func ReadRDBFile(dir, filename string) ([]byte, error) {
 	path := filepath.Join(dir, filename)
 	data, err := os.ReadFile(path)
 	return data, err

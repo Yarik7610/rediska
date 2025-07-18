@@ -19,7 +19,7 @@ func (c *Controller) psync(args []string, conn net.Conn) resp.Value {
 	switch r := c.replication.(type) {
 	case replication.Master:
 		if requestedReplID == "?" && requestedReplOffset == "-1" {
-			// TODO make fullresync with replica on master side
+			go r.SendRDBFile(conn)
 			response := "FULLRESYNC" + " " + r.Info().MasterReplID + " " + "0"
 			return resp.SimpleString{Value: response}
 		}

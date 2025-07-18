@@ -12,34 +12,50 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/persistence/rdb"
+	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
 type base struct {
-	Storage           *memory.Storage
-	RESPController    *resp.Controller
-	CommandController *commands.Controller
-	Args              *config.Args
+	storage           *memory.Storage
+	respController    *resp.Controller
+	commandController *commands.Controller
+	args              *config.Args
+	replicationInfo   *replication.Info
 }
+
+var _ replication.Base = (*base)(nil)
 
 func newBase(args *config.Args) *base {
 	return &base{
-		Storage:        memory.NewStorage(),
-		RESPController: resp.NewController(),
-		Args:           args,
+		storage:        memory.NewStorage(),
+		respController: resp.NewController(),
+		args:           args,
 	}
 }
 
+func (base *base) Info() *replication.Info {
+	return base.replicationInfo
+}
+
+func (base *base) SetMasterReplID(replID string) {
+	base.replicationInfo.MasterReplID = replID
+}
+
+func (base *base) SetMasterReplOfffset(replOffset int) {
+	base.replicationInfo.MasterReplOffset = replOffset
+}
+
 func (base *base) initStorage() {
-	if base.Args.DBDir == "" || base.Args.DBFilename == "" {
+	if base.args.DBDir == "" || base.args.DBFilename == "" {
 		return
 	}
 
-	if !rdb.IsFileExists(base.Args.DBDir, base.Args.DBFilename) {
+	if !rdb.IsFileExists(base.args.DBDir, base.args.DBFilename) {
 		return
 	}
 
-	b, err := rdb.ReadRDB(base.Args.DBDir, base.Args.DBFilename)
+	b, err := rdb.ReadRDBFile(base.args.DBDir, base.args.DBFilename)
 	if err != nil {
 		log.Printf("Skip RDB storage seed, RDB file read error: %v\n", err)
 		return
@@ -57,16 +73,16 @@ func (base *base) putRDBItemsIntoStorage(items map[string]memory.Item) {
 	for key, item := range items {
 		if memory.ItemHasExpiration(&item) {
 			if !memory.ItemExpired(&item) {
-				base.Storage.SetWithExpiry(key, item.Value, item.Expires)
+				base.storage.SetWithExpiry(key, item.Value, item.Expires)
 			}
 		} else {
-			base.Storage.Set(key, item.Value)
+			base.storage.Set(key, item.Value)
 		}
 	}
 }
 
 func (base *base) acceptClientConnections() {
-	address := fmt.Sprintf("%s:%d", base.Args.Host, base.Args.Port)
+	address := fmt.Sprintf("%s:%d", base.args.Host, base.args.Port)
 
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
@@ -104,7 +120,7 @@ func (base *base) handleClient(conn net.Conn) {
 
 		//Reading all commands from buffer, if there is more than 1 command
 		for len(buf) > 0 {
-			rest, value, err := base.RESPController.Decode(buf)
+			rest, value, err := base.respController.Decode(buf)
 			if err != nil {
 				log.Printf("decode error: %v", err)
 				fmt.Fprintf(conn, "-ERR %v\r\n", err)
@@ -113,7 +129,7 @@ func (base *base) handleClient(conn net.Conn) {
 
 			buf = rest
 
-			base.CommandController.HandleCommand(value, conn)
+			base.commandController.HandleCommand(value, conn)
 		}
 	}
 }
@@ -123,7 +139,7 @@ func (base *base) startExpiredKeysCleanup() {
 
 	go func() {
 		for range ticker.C {
-			base.Storage.CleanExpiredKeys()
+			base.storage.CleanExpiredKeys()
 		}
 	}()
 }
