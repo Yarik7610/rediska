@@ -13,29 +13,25 @@ func (c *Controller) configGet(args []string) resp.Value {
 	}
 
 	arg := args[0]
-	value := []resp.Value{
-		resp.BulkString{Value: &arg},
-	}
+	value := []string{arg}
 	switch arg {
 	case "host":
-		value = append(value, resp.BulkString{Value: &c.args.Host})
+		value = append(value, c.args.Host)
 	case "port":
-		itoaPort := strconv.Itoa(c.args.Port)
-		value = append(value, resp.BulkString{Value: &itoaPort})
+		value = append(value, strconv.Itoa(c.args.Port))
 	case "replicaof":
-		var replicaOfString *string
+		var replicaOfString string
 		if c.args.ReplicaOf != nil {
-			str := c.args.ReplicaOf.String()
-			replicaOfString = &str
+			replicaOfString = c.args.ReplicaOf.String()
 		}
-		value = append(value, resp.BulkString{Value: replicaOfString})
+		value = append(value, replicaOfString)
 	case "dir":
-		value = append(value, resp.BulkString{Value: &c.args.DBDir})
+		value = append(value, c.args.DBDir)
 	case "dbfilename":
-		value = append(value, resp.BulkString{Value: &c.args.DBFilename})
+		value = append(value, c.args.DBFilename)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("CONFIG GET command unknown arg: %s", arg)}
 	}
 
-	return resp.Array{Value: value}
+	return resp.CreateArray(value...)
 }

@@ -41,7 +41,11 @@ func (*Controller) Decode(b []byte) (rest []byte, value Value, err error) {
 func CreateArray(args ...string) Array {
 	var values []Value
 	for _, arg := range args {
-		values = append(values, BulkString{Value: StrPtr(arg)})
+		if arg == "" {
+			values = append(values, BulkString{Value: nil})
+		} else {
+			values = append(values, BulkString{Value: StrPtr(arg)})
+		}
 	}
 	return Array{Value: values}
 }

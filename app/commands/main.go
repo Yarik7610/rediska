@@ -84,6 +84,8 @@ func (c *Controller) handleArrayCommand(unit resp.Array, conn net.Conn) resp.Val
 		return c.info(args)
 	case "REPLCONF":
 		return c.replconf(args, conn)
+	case "PSYNC":
+		return c.psync(args, conn)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}

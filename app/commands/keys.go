@@ -15,9 +15,5 @@ func (c *Controller) keys(args []string) resp.Value {
 	}
 
 	keys := c.storage.GetKeys()
-	var value []resp.Value
-	for _, key := range keys {
-		value = append(value, resp.BulkString{Value: &key})
-	}
-	return resp.Array{Value: value}
+	return resp.CreateArray(keys...)
 }
