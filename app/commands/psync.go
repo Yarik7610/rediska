@@ -13,15 +13,17 @@ func (c *Controller) psync(args []string, conn net.Conn) resp.Value {
 		return resp.SimpleError{Value: "psync command error: only 2 argument supported"}
 	}
 
-	replID := args[0]
-	replOffset := args[1]
+	requestedReplID := args[0]
+	requestedReplOffset := args[1]
 
 	switch r := c.replication.(type) {
 	case replication.Master:
-		if replID == "?" && replOffset == "-1" {
-			// return resp.CreateArray()
+		if requestedReplID == "?" && requestedReplOffset == "-1" {
+			// TODO make fullresync with replica on master side
+			response := "FULLRESYNC" + " " + r.Info().MasterReplID + " " + "0"
+			return resp.SimpleString{Value: response}
 		}
-		return resp.SimpleError{Value: fmt.Sprintf("psync master unsupported replication id: %s and replication offset: %s", replID, replOffset)}
+		return resp.SimpleError{Value: fmt.Sprintf("psync master unsupported replication id: %s and replication offset: %s", requestedReplID, requestedReplOffset)}
 	case replication.Replica:
 		return resp.SimpleError{Value: "psync isn't supported for replica"}
 	default:
