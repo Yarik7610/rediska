@@ -54,13 +54,19 @@ func (base *base) initStorage() {
 	if !rdb.IsFileExists(base.args.DBDir, base.args.DBFilename) {
 		return
 	}
+	base.persistWithRDBFile()
+}
 
+func (base *base) persistWithRDBFile() {
 	b, err := rdb.ReadRDBFile(base.args.DBDir, base.args.DBFilename)
 	if err != nil {
 		log.Printf("Skip RDB storage seed, RDB file read error: %v\n", err)
 		return
 	}
+	base.processRDBFile(b)
+}
 
+func (base *base) processRDBFile(b []byte) {
 	items, err := rdb.Decode(b)
 	if err != nil {
 		log.Printf("Skip RDB storage seed, RDB decode error: %v\n", err)

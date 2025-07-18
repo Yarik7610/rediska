@@ -11,6 +11,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/persistence/rdb"
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
+	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
 type master struct {
@@ -35,6 +36,17 @@ func (m *master) Start() {
 	m.initStorage()
 	m.acceptClientConnections()
 	m.startExpiredKeysCleanup()
+}
+
+func (m *master) Propagate(args []string) {
+	command := resp.CreateArray(args...)
+	for addr, conn := range m.replicas {
+		err := m.commandController.Write(command, conn)
+		if err != nil {
+			log.Printf("Desynchronization with %s (but continue to work), propagate error: %v", addr, err)
+			continue
+		}
+	}
 }
 
 func (m *master) AddReplicaConn(addr string, replicaConn net.Conn) {

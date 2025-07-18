@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) set(args []string) resp.Value {
+func (c *Controller) set(args, commandAndArgs []string) resp.Value {
 	if len(args) < 2 {
 		return resp.SimpleError{Value: "SET command must have at least 2 args"}
 	}
@@ -25,11 +26,19 @@ func (c *Controller) set(args []string) resp.Value {
 			return resp.SimpleError{Value: fmt.Sprintf("SET command get expiry error: %v", err)}
 		}
 		c.storage.SetWithExpiry(key, value, expiry)
+		go c.propagateSet(commandAndArgs)
 		return resp.SimpleString{Value: "OK"}
 	}
 
 	c.storage.Set(key, value)
+	go c.propagateSet(commandAndArgs)
 	return resp.SimpleString{Value: "OK"}
+}
+
+func (c *Controller) propagateSet(args []string) {
+	if m, ok := c.replication.(replication.Master); ok {
+		m.Propagate(args)
+	}
 }
 
 func getExpireTime(expireMark, expireDuration string) (time.Time, error) {

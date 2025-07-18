@@ -35,16 +35,13 @@ func newReplica(args *config.Args) *replica {
 func (r *replica) Start() {
 	fmt.Println("START REPLICA SERVER")
 	r.initStorage()
-	r.connectToMaster()
+	r.ConnectToMaster()
 	r.acceptClientConnections()
 }
 
-func (*replica) initReplicationInfo() *replication.Info {
-	return &replication.Info{
-		Role:             "slave",
-		MasterReplID:     "?",
-		MasterReplOffset: -1,
-	}
+func (r *replica) ConnectToMaster() {
+	r.dialMaster()
+	r.processMasterHandshake()
 }
 
 func (r *replica) ReadFromMaster() ([]byte, int, error) {
@@ -57,6 +54,14 @@ func (r *replica) ReadFromMaster() ([]byte, int, error) {
 	return b, n, err
 }
 
+func (*replica) initReplicationInfo() *replication.Info {
+	return &replication.Info{
+		Role:             "slave",
+		MasterReplID:     "?",
+		MasterReplOffset: -1,
+	}
+}
+
 func (r *replica) readValueFromMaster() (resp.Value, error) {
 	//Reading only first acceptable command from buffer, others are discarded
 	b, n, err := r.ReadFromMaster()
@@ -65,11 +70,6 @@ func (r *replica) readValueFromMaster() (resp.Value, error) {
 	}
 	_, value, err := r.respController.Decode(b[:n])
 	return value, err
-}
-
-func (r *replica) connectToMaster() {
-	r.dialMaster()
-	r.processMasterHandshake()
 }
 
 func (r *replica) dialMaster() {
@@ -144,4 +144,10 @@ func (r *replica) processMasterHandshakePSYNC() {
 	}
 	r.SetMasterReplID(replID)
 	r.SetMasterReplOfffset(atoiReplOffset)
+
+	rdbPayload, n, err := r.ReadFromMaster()
+	if err != nil {
+		log.Fatalf("Master handshake PSYNC (3/3) read RDB file from master error: %s\n", err)
+	}
+	r.processRDBFile(rdbPayload[:n])
 }

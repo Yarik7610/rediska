@@ -71,7 +71,7 @@ func (c *Controller) handleArrayCommand(unit resp.Array, conn net.Conn) resp.Val
 	case "GET":
 		return c.get(args)
 	case "SET":
-		return c.set(args)
+		return c.set(args, commandAndArgs)
 	case "CONFIG":
 		secondCommand := strings.ToUpper(args[0])
 		if secondCommand == "GET" {
