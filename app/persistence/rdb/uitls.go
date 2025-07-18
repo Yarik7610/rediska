@@ -26,7 +26,7 @@ func (dec *decoder) traverseUInt8() (uint8, error) {
 }
 
 func (dec *decoder) traverseUintXBytes(byteCount int) (uint64, error) {
-	if dec.len <= dec.pos+byteCount {
+	if dec.len < dec.pos+byteCount {
 		return 0, fmt.Errorf("traverseUInt%d: not enough bytes, length is %d, pos is %d", byteCount*8, dec.len, dec.pos)
 	}
 
@@ -48,8 +48,8 @@ func (dec *decoder) traverseUintXBytes(byteCount int) (uint64, error) {
 }
 
 func (dec *decoder) traverseStringLen(offset int) (string, error) {
-	if dec.len <= dec.pos+offset {
-		return "", fmt.Errorf("traverseStringLen: can't traverse by %d bytes because rdb file length is %d", offset, dec.len)
+	if dec.len < dec.pos+offset {
+		return "", fmt.Errorf("traverseStringLen: can't traverse by %d bytes because rdb file length is %d, got length: %d", offset, dec.len, dec.pos+offset)
 	}
 
 	str := string(dec.b[dec.pos : dec.pos+offset])

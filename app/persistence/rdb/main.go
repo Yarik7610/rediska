@@ -10,20 +10,20 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
 )
 
-type Header struct {
+type header struct {
 	name    string
 	version int
 }
 
-func (h *Header) String() string {
+func (h *header) String() string {
 	return fmt.Sprintf("HEADER\nName: %s, version: %d\n", h.name, h.version)
 }
 
-type Metadata struct {
+type metadata struct {
 	data map[string]string
 }
 
-func (m *Metadata) String() string {
+func (m *metadata) String() string {
 	var b bytes.Buffer
 
 	b.WriteString(fmt.Sprintln("METADATA"))
@@ -35,14 +35,14 @@ func (m *Metadata) String() string {
 }
 
 // No division on 2 maps: expired and unexpired
-type Database struct {
+type database struct {
 	dbSelector              int
 	keysCount               int
 	keysWithExpirationCount int
 	items                   map[string]memory.Item
 }
 
-func (d *Database) String() string {
+func (d *database) String() string {
 	var b bytes.Buffer
 
 	b.WriteString(fmt.Sprintf("DATABASE #%d\n", d.dbSelector))
@@ -52,6 +52,14 @@ func (d *Database) String() string {
 	}
 
 	return b.String()
+}
+
+type end struct {
+	checksum string
+}
+
+func (e *end) String() string {
+	return fmt.Sprintf("END\nChecksum: %x\n", e.checksum)
 }
 
 var ErrorEOF error = errors.New("EOF")

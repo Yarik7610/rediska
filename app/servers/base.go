@@ -66,13 +66,14 @@ func (base *base) persistWithRDBFile() {
 	base.processRDBFile(b)
 }
 
-func (base *base) processRDBFile(b []byte) {
-	items, err := rdb.Decode(b)
+func (base *base) processRDBFile(b []byte) []byte {
+	items, rest, err := rdb.Decode(b)
 	if err != nil {
 		log.Printf("Skip RDB storage seed, RDB decode error: %v\n", err)
-		return
+		return rest
 	}
 	base.putRDBItemsIntoStorage(items)
+	return rest
 }
 
 func (base *base) putRDBItemsIntoStorage(items map[string]memory.Item) {

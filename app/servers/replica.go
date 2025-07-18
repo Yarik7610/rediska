@@ -154,4 +154,5 @@ func (r *replica) processMasterHandshakePSYNC() {
 		log.Fatalf("Master handshake PSYNC (3/3) read RDB file from master error: %s\n", err)
 	}
 	r.processRDBFile(rdbPayload[:n])
+
 }

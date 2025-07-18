@@ -15,33 +15,39 @@ type decoder struct {
 	len int
 }
 
-func Decode(b []byte) (map[string]memory.Item, error) {
+func Decode(b []byte) (map[string]memory.Item, []byte, error) {
 	dec := decoder{b: b, pos: 0, len: len(b)}
 
 	header, err := dec.decodeHeader()
 	if err != nil {
-		return nil, fmt.Errorf("decode header error: %v", err)
+		return nil, nil, fmt.Errorf("decode header error: %v", err)
 	}
 	fmt.Println(header)
 
 	metadata, err := dec.decodeMetadata()
 	if err != nil {
-		return nil, fmt.Errorf("decode metadata error: %v", err)
+		return nil, nil, fmt.Errorf("decode metadata error: %v", err)
 	}
 	fmt.Println(metadata)
 
 	databases, err := dec.decodeDatabases()
 	if err != nil {
-		return nil, fmt.Errorf("decode database error: %v", err)
+		return nil, nil, fmt.Errorf("decode database error: %v", err)
 	}
 	for _, database := range databases {
 		fmt.Println(database)
 	}
 
-	return databases[0].items, nil
+	end, err := dec.decodeEnd()
+	if err != nil {
+		return nil, nil, fmt.Errorf("decode end error: %v", err)
+	}
+	fmt.Println(end)
+
+	return databases[0].items, dec.b[dec.pos:], nil
 }
 
-func (dec *decoder) decodeHeader() (*Header, error) {
+func (dec *decoder) decodeHeader() (*header, error) {
 	magicString, err := dec.traverseStringLen(5)
 	if err != nil {
 		return nil, err
@@ -59,10 +65,10 @@ func (dec *decoder) decodeHeader() (*Header, error) {
 		return nil, fmt.Errorf("atoi error: %v", err)
 	}
 
-	return &Header{name: magicString, version: versionAtoi}, nil
+	return &header{name: magicString, version: versionAtoi}, nil
 }
 
-func (dec *decoder) decodeMetadata() (*Metadata, error) {
+func (dec *decoder) decodeMetadata() (*metadata, error) {
 	data := make(map[string]string)
 
 	for {
@@ -86,11 +92,11 @@ func (dec *decoder) decodeMetadata() (*Metadata, error) {
 		data[key] = value
 	}
 
-	return &Metadata{data: data}, nil
+	return &metadata{data: data}, nil
 }
 
-func (dec *decoder) decodeDatabases() ([]*Database, error) {
-	var databases []*Database
+func (dec *decoder) decodeDatabases() ([]*database, error) {
+	var databases []*database
 
 	for {
 		opCode, err := dec.traverseUInt8()
@@ -102,7 +108,7 @@ func (dec *decoder) decodeDatabases() ([]*Database, error) {
 			break
 		}
 
-		var database Database
+		var database database
 		database.dbSelector, _, err = dec.decodeLength()
 		if err != nil {
 			return nil, fmt.Errorf("database decodeLength error: %v", err)
@@ -142,7 +148,24 @@ func (dec *decoder) decodeDatabases() ([]*Database, error) {
 	return databases, nil
 }
 
-func (dec *decoder) decodeKeyValuePairs(db *Database) error {
+func (dec *decoder) decodeEnd() (*end, error) {
+	opCode, err := dec.traverseUInt8()
+	if err != nil {
+		return nil, err
+	}
+	if opCode != OP_EOF {
+		return nil, fmt.Errorf("decode file end wrong op code: %d", opCode)
+	}
+
+	checksum, err := dec.traverseStringLen(8)
+	if err != nil {
+		return nil, err
+	}
+
+	return &end{checksum: checksum}, nil
+}
+
+func (dec *decoder) decodeKeyValuePairs(db *database) error {
 	for {
 		timeStampOpCode, err := dec.traverseUInt8()
 		if err != nil {
@@ -167,7 +190,7 @@ func (dec *decoder) decodeKeyValuePairs(db *Database) error {
 	}
 }
 
-func (dec *decoder) decodeKeyValueMS(db *Database) error {
+func (dec *decoder) decodeKeyValueMS(db *database) error {
 	expireTimestampMS, err := dec.traverseUInt64()
 	if err != nil {
 		return err
@@ -182,7 +205,7 @@ func (dec *decoder) decodeKeyValueMS(db *Database) error {
 	return nil
 }
 
-func (dec *decoder) decodeKeyValueS(db *Database) error {
+func (dec *decoder) decodeKeyValueS(db *database) error {
 	expireTimestampS, err := dec.traverseUInt32()
 	if err != nil {
 		return err
@@ -197,7 +220,7 @@ func (dec *decoder) decodeKeyValueS(db *Database) error {
 	return nil
 }
 
-func (dec *decoder) decodeKeyValue(db *Database, expires time.Time) error {
+func (dec *decoder) decodeKeyValue(db *database, expires time.Time) error {
 	valueType, err := dec.traverseUInt8()
 	if err != nil {
 		return fmt.Errorf("value type decode error: %v", err)
