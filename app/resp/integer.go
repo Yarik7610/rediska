@@ -10,13 +10,13 @@ type Integer struct {
 }
 
 func (i Integer) Encode() ([]byte, error) {
-	return []byte(fmt.Sprintf(":%d\r\n", i.Value)), nil
+	return fmt.Appendf(nil, ":%d\r\n", i.Value), nil
 }
 
 func (Integer) Decode(b []byte) ([]byte, Value, error) {
 	l := len(b)
-	if l == 0 {
-		return nil, nil, fmt.Errorf("integer decode error: expected not fully empty string")
+	if l == 0 || b == nil {
+		return nil, nil, fmt.Errorf("integer decode error: expected non-empty data")
 	}
 
 	if b[0] != ':' {

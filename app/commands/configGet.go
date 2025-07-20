@@ -33,5 +33,5 @@ func (c *Controller) configGet(args []string) resp.Value {
 		return resp.SimpleError{Value: fmt.Sprintf("CONFIG GET command unknown arg: %s", arg)}
 	}
 
-	return resp.CreateArray(value...)
+	return resp.CreateBulkStringArray(value...)
 }

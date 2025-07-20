@@ -2,6 +2,7 @@ package resp
 
 import (
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -19,8 +20,8 @@ func (ss SimpleString) Encode() ([]byte, error) {
 
 func (SimpleString) Decode(b []byte) ([]byte, Value, error) {
 	l := len(b)
-	if l == 0 {
-		return nil, nil, fmt.Errorf("simple string decode error: expected not fully empty string")
+	if l == 0 || b == nil {
+		return nil, nil, fmt.Errorf("simple string decode error: expected non-empty data")
 	}
 
 	if b[0] != '+' {
@@ -33,4 +34,14 @@ func (SimpleString) Decode(b []byte) ([]byte, Value, error) {
 	}
 
 	return b, SimpleString{Value: res}, nil
+}
+
+func AssertEqualSimpleString(value Value, raw string) {
+	v, ok := value.(SimpleString)
+	if !ok {
+		log.Fatalf("assertion failed: expected SimpleString, got: %T", value)
+	}
+	if v.Value != raw {
+		log.Fatalf("assertion failed: expected %s, got: %v", raw, v.Value)
+	}
 }

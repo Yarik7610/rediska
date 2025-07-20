@@ -50,3 +50,7 @@ func requireEndingCRLF(b []byte) error {
 	}
 	return nil
 }
+
+func strPtr(s string) *string {
+	return &s
+}

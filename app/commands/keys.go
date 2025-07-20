@@ -15,5 +15,5 @@ func (c *Controller) keys(args []string) resp.Value {
 	}
 
 	keys := c.storage.GetKeys()
-	return resp.CreateArray(keys...)
+	return resp.CreateBulkStringArray(keys...)
 }

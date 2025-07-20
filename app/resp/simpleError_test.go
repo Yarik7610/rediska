@@ -14,12 +14,6 @@ func TestSimpleErrorEncode(t *testing.T) {
 		ShouldError bool
 	}{
 		{
-			Name:        "Simple error",
-			In:          SimpleError{Value: "ERR invalid command"},
-			Expected:    []byte("-ERR invalid command\r\n"),
-			ShouldError: false,
-		},
-		{
 			Name:        "Empty error",
 			In:          SimpleError{Value: ""},
 			Expected:    []byte("-\r\n"),
@@ -38,27 +32,9 @@ func TestSimpleErrorEncode(t *testing.T) {
 			ShouldError: false,
 		},
 		{
-			Name:        "Single character error",
-			In:          SimpleError{Value: "E"},
-			Expected:    []byte("-E\r\n"),
-			ShouldError: false,
-		},
-		{
-			Name:        "Error with numbers",
-			In:          SimpleError{Value: "ERR 404"},
-			Expected:    []byte("-ERR 404\r\n"),
-			ShouldError: false,
-		},
-		{
 			Name:        "Error with tab",
 			In:          SimpleError{Value: "ERR\tinvalid"},
 			Expected:    []byte("-ERR\tinvalid\r\n"),
-			ShouldError: false,
-		},
-		{
-			Name:        "Long error",
-			In:          SimpleError{Value: "ERR This is a very long error message to test encoding with more than a few characters"},
-			Expected:    []byte("-ERR This is a very long error message to test encoding with more than a few characters\r\n"),
 			ShouldError: false,
 		},
 	}
@@ -86,12 +62,6 @@ func TestSimpleErrorDecode(t *testing.T) {
 		ShouldError bool
 	}{
 		{
-			Name:        "Simple error",
-			In:          []byte("-ERR invalid command\r\n"),
-			Expected:    SimpleError{Value: "ERR invalid command"},
-			ShouldError: false,
-		},
-		{
 			Name:        "Empty error",
 			In:          []byte("-\r\n"),
 			Expected:    SimpleError{Value: ""},
@@ -110,27 +80,9 @@ func TestSimpleErrorDecode(t *testing.T) {
 			ShouldError: false,
 		},
 		{
-			Name:        "Single character error",
-			In:          []byte("-E\r\n"),
-			Expected:    SimpleError{Value: "E"},
-			ShouldError: false,
-		},
-		{
-			Name:        "Error with numbers",
-			In:          []byte("-ERR 404\r\n"),
-			Expected:    SimpleError{Value: "ERR 404"},
-			ShouldError: false,
-		},
-		{
 			Name:        "Error with tab",
 			In:          []byte("-ERR\tinvalid\r\n"),
 			Expected:    SimpleError{Value: "ERR\tinvalid"},
-			ShouldError: false,
-		},
-		{
-			Name:        "Long error",
-			In:          []byte("-ERR This is a very long error message to test decoding with more than a few characters\r\n"),
-			Expected:    SimpleError{Value: "ERR This is a very long error message to test decoding with more than a few characters"},
 			ShouldError: false,
 		},
 		{

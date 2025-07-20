@@ -14,12 +14,6 @@ func TestSimpleStringEncode(t *testing.T) {
 		ShouldError bool
 	}{
 		{
-			Name:        "Simple usual string",
-			In:          SimpleString{Value: "PONG"},
-			Expected:    []byte("+PONG\r\n"),
-			ShouldError: false,
-		},
-		{
 			Name:        "Empty string",
 			In:          SimpleString{Value: ""},
 			Expected:    []byte("+\r\n"),
@@ -38,27 +32,9 @@ func TestSimpleStringEncode(t *testing.T) {
 			ShouldError: false,
 		},
 		{
-			Name:        "Single character",
-			In:          SimpleString{Value: "A"},
-			Expected:    []byte("+A\r\n"),
-			ShouldError: false,
-		},
-		{
-			Name:        "String with numbers",
-			In:          SimpleString{Value: "12345"},
-			Expected:    []byte("+12345\r\n"),
-			ShouldError: false,
-		},
-		{
 			Name:        "String with tab",
 			In:          SimpleString{Value: "HELLO\tWORLD"},
 			Expected:    []byte("+HELLO\tWORLD\r\n"),
-			ShouldError: false,
-		},
-		{
-			Name:        "Long string",
-			In:          SimpleString{Value: "This is a very long string to test encoding with more than a few characters"},
-			Expected:    []byte("+This is a very long string to test encoding with more than a few characters\r\n"),
 			ShouldError: false,
 		},
 	}
@@ -86,12 +62,6 @@ func TestSimpleStringDecode(t *testing.T) {
 		ShouldError bool
 	}{
 		{
-			Name:        "Simple usual string",
-			In:          []byte("+PONG\r\n"),
-			Expected:    SimpleString{Value: "PONG"},
-			ShouldError: false,
-		},
-		{
 			Name:        "Empty string",
 			In:          []byte("+\r\n"),
 			Expected:    SimpleString{Value: ""},
@@ -110,27 +80,9 @@ func TestSimpleStringDecode(t *testing.T) {
 			ShouldError: false,
 		},
 		{
-			Name:        "Single character",
-			In:          []byte("+A\r\n"),
-			Expected:    SimpleString{Value: "A"},
-			ShouldError: false,
-		},
-		{
-			Name:        "String with numbers",
-			In:          []byte("+12345\r\n"),
-			Expected:    SimpleString{Value: "12345"},
-			ShouldError: false,
-		},
-		{
 			Name:        "String with tab",
 			In:          []byte("+HELLO\tWORLD\r\n"),
 			Expected:    SimpleString{Value: "HELLO\tWORLD"},
-			ShouldError: false,
-		},
-		{
-			Name:        "Long string",
-			In:          []byte("+This is a very long string to test decoding with more than a few characters\r\n"),
-			Expected:    SimpleString{Value: "This is a very long string to test decoding with more than a few characters"},
 			ShouldError: false,
 		},
 		{

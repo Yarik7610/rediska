@@ -120,7 +120,7 @@ func (base *base) processCommands(buf []byte, conn net.Conn, writeResponseToConn
 	for len(buf) > 0 {
 		rest, value, err := base.respController.Decode(buf)
 		if err != nil {
-			log.Printf("decode error: %v", err)
+			log.Printf("RESP controller decode error: %v", err)
 			return buf
 		}
 

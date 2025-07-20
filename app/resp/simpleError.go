@@ -9,13 +9,13 @@ type SimpleError struct {
 }
 
 func (se SimpleError) Encode() ([]byte, error) {
-	return []byte(fmt.Sprintf("-%s\r\n", se.Value)), nil
+	return fmt.Appendf(nil, "-%s\r\n", se.Value), nil
 }
 
 func (SimpleError) Decode(b []byte) ([]byte, Value, error) {
 	l := len(b)
-	if l == 0 {
-		return nil, nil, fmt.Errorf("simple error decode error: expected not fully empty string")
+	if l == 0 || b == nil {
+		return nil, nil, fmt.Errorf("simple error decode error: expected non-empty data")
 	}
 
 	if b[0] != '-' {

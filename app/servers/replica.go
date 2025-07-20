@@ -108,7 +108,7 @@ func (r *replica) readValueFromMaster() (resp.Value, error) {
 
 	rest, value, err := r.respController.Decode(r.masterConnBuffer)
 	if err != nil {
-		return nil, fmt.Errorf("decode error: %v", err)
+		return nil, fmt.Errorf("RESP controller decode error: %v", err)
 	}
 
 	r.masterConnBuffer = rest
@@ -161,7 +161,7 @@ func (r *replica) processMasterHandshake() {
 }
 
 func (r *replica) processMasterHandshakePING() {
-	pingCommand := resp.CreateArray("PING")
+	pingCommand := resp.CreateBulkStringArray("PING")
 	err := r.commandController.Write(pingCommand, r.masterConn)
 	if err != nil {
 		log.Fatalf("Master handshake PING (1/3) write error: %s\n", err)
@@ -175,8 +175,8 @@ func (r *replica) processMasterHandshakePING() {
 
 func (r *replica) processMasterHandshakeREPLCONF() {
 	commands := []resp.Array{
-		resp.CreateArray("REPLCONF", "listening-port", strconv.Itoa(r.args.Port)),
-		resp.CreateArray("REPLCONF", "capa", "psync2"),
+		resp.CreateBulkStringArray("REPLCONF", "listening-port", strconv.Itoa(r.args.Port)),
+		resp.CreateBulkStringArray("REPLCONF", "capa", "psync2"),
 	}
 
 	for _, command := range commands {
@@ -193,7 +193,7 @@ func (r *replica) processMasterHandshakeREPLCONF() {
 }
 
 func (r *replica) processMasterHandshakePSYNC() {
-	psyncCommand := resp.CreateArray("PSYNC", "?", "-1")
+	psyncCommand := resp.CreateBulkStringArray("PSYNC", "?", "-1")
 	err := r.commandController.Write(psyncCommand, r.masterConn)
 	if err != nil {
 		log.Fatalf("Master handshake PSYNC (3/3) write error: %s\n", err)

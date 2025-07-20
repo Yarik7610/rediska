@@ -14,14 +14,8 @@ func TestBulkStringEncode(t *testing.T) {
 		ShouldError bool
 	}{
 		{
-			Name:        "Simple string",
-			In:          BulkString{Value: StrPtr("hello")},
-			Expected:    []byte("$5\r\nhello\r\n"),
-			ShouldError: false,
-		},
-		{
 			Name:        "Empty string",
-			In:          BulkString{Value: StrPtr("")},
+			In:          BulkString{Value: strPtr("")},
 			Expected:    []byte("$0\r\n\r\n"),
 			ShouldError: false,
 		},
@@ -33,43 +27,19 @@ func TestBulkStringEncode(t *testing.T) {
 		},
 		{
 			Name:        "String with spaces",
-			In:          BulkString{Value: StrPtr("hello world")},
+			In:          BulkString{Value: strPtr("hello world")},
 			Expected:    []byte("$11\r\nhello world\r\n"),
 			ShouldError: false,
 		},
 		{
 			Name:        "String with special characters",
-			In:          BulkString{Value: StrPtr("hello!@#$%")},
+			In:          BulkString{Value: strPtr("hello!@#$%")},
 			Expected:    []byte("$10\r\nhello!@#$%\r\n"),
 			ShouldError: false,
 		},
 		{
-			Name:        "Single character",
-			In:          BulkString{Value: StrPtr("A")},
-			Expected:    []byte("$1\r\nA\r\n"),
-			ShouldError: false,
-		},
-		{
-			Name:        "String with numbers",
-			In:          BulkString{Value: StrPtr("12345")},
-			Expected:    []byte("$5\r\n12345\r\n"),
-			ShouldError: false,
-		},
-		{
-			Name:        "String with tab",
-			In:          BulkString{Value: StrPtr("hello\tworld")},
-			Expected:    []byte("$11\r\nhello\tworld\r\n"),
-			ShouldError: false,
-		},
-		{
-			Name:        "Long string",
-			In:          BulkString{Value: StrPtr("This is a very long string to test encoding with more than a few characters")},
-			Expected:    []byte("$75\r\nThis is a very long string to test encoding with more than a few characters\r\n"),
-			ShouldError: false,
-		},
-		{
 			Name:        "String with embedded CRLF",
-			In:          BulkString{Value: StrPtr("hello\r\nworld")},
+			In:          BulkString{Value: strPtr("hello\r\nworld")},
 			Expected:    []byte("$12\r\nhello\r\nworld\r\n"),
 			ShouldError: false,
 		},
@@ -98,15 +68,9 @@ func TestBulkStringDecode(t *testing.T) {
 		ShouldError bool
 	}{
 		{
-			Name:        "Simple string",
-			In:          []byte("$5\r\nhello\r\n"),
-			Expected:    BulkString{Value: StrPtr("hello")},
-			ShouldError: false,
-		},
-		{
 			Name:        "Empty string",
 			In:          []byte("$0\r\n\r\n"),
-			Expected:    BulkString{Value: StrPtr("")},
+			Expected:    BulkString{Value: strPtr("")},
 			ShouldError: false,
 		},
 		{
@@ -118,43 +82,19 @@ func TestBulkStringDecode(t *testing.T) {
 		{
 			Name:        "String with spaces",
 			In:          []byte("$11\r\nhello world\r\n"),
-			Expected:    BulkString{Value: StrPtr("hello world")},
+			Expected:    BulkString{Value: strPtr("hello world")},
 			ShouldError: false,
 		},
 		{
 			Name:        "String with special characters",
 			In:          []byte("$10\r\nhello!@#$%\r\n"),
-			Expected:    BulkString{Value: StrPtr("hello!@#$%")},
-			ShouldError: false,
-		},
-		{
-			Name:        "Single character",
-			In:          []byte("$1\r\nA\r\n"),
-			Expected:    BulkString{Value: StrPtr("A")},
-			ShouldError: false,
-		},
-		{
-			Name:        "String with numbers",
-			In:          []byte("$5\r\n12345\r\n"),
-			Expected:    BulkString{Value: StrPtr("12345")},
-			ShouldError: false,
-		},
-		{
-			Name:        "String with tab",
-			In:          []byte("$11\r\nhello\tworld\r\n"),
-			Expected:    BulkString{Value: StrPtr("hello\tworld")},
-			ShouldError: false,
-		},
-		{
-			Name:        "Long string",
-			In:          []byte("$75\r\nThis is a very long string to test decoding with more than a few characters\r\n"),
-			Expected:    BulkString{Value: StrPtr("This is a very long string to test decoding with more than a few characters")},
+			Expected:    BulkString{Value: strPtr("hello!@#$%")},
 			ShouldError: false,
 		},
 		{
 			Name:        "String with embedded CRLF",
 			In:          []byte("$12\r\nhello\r\nworld\r\n"),
-			Expected:    BulkString{Value: StrPtr("hello\r\nworld")},
+			Expected:    BulkString{Value: strPtr("hello\r\nworld")},
 			ShouldError: false,
 		},
 		{

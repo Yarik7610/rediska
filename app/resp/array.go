@@ -32,8 +32,8 @@ func (a Array) Encode() ([]byte, error) {
 
 func (Array) Decode(b []byte) ([]byte, Value, error) {
 	l := len(b)
-	if l == 0 {
-		return nil, nil, fmt.Errorf("array decode error: expected not fully empty string")
+	if l == 0 || b == nil {
+		return nil, nil, fmt.Errorf("array decode error: expected non-empty data")
 	}
 
 	if string(b) == NULL_ARRAY_RESP_2 {
@@ -80,4 +80,16 @@ func (Array) Decode(b []byte) ([]byte, Value, error) {
 	}
 
 	return b, Array{Value: res}, nil
+}
+
+func CreateBulkStringArray(args ...string) Array {
+	var values []Value
+	for _, arg := range args {
+		if arg == "" {
+			values = append(values, BulkString{Value: nil})
+		} else {
+			values = append(values, BulkString{Value: strPtr(arg)})
+		}
+	}
+	return Array{Value: values}
 }

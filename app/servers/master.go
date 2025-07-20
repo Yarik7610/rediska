@@ -57,7 +57,7 @@ func (m *master) acceptClientConnections() {
 }
 
 func (m *master) Propagate(args []string) {
-	command := resp.CreateArray(args...)
+	command := resp.CreateBulkStringArray(args...)
 	for addr, conn := range m.replicas {
 		err := m.commandController.Write(command, conn)
 		if err != nil {

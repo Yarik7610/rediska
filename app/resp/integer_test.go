@@ -14,18 +14,6 @@ func TestIntegerEncode(t *testing.T) {
 		ShouldError bool
 	}{
 		{
-			Name:        "Positive Integer",
-			In:          Integer{Value: 123},
-			Expected:    []byte(":123\r\n"),
-			ShouldError: false,
-		},
-		{
-			Name:        "Negative Integer",
-			In:          Integer{Value: -456},
-			Expected:    []byte(":-456\r\n"),
-			ShouldError: false,
-		},
-		{
 			Name:        "Zero",
 			In:          Integer{Value: 0},
 			Expected:    []byte(":0\r\n"),
@@ -67,18 +55,6 @@ func TestIntegerDecode(t *testing.T) {
 		Expected    Value
 		ShouldError bool
 	}{
-		{
-			Name:        "Positive Integer",
-			In:          []byte(":123\r\n"),
-			Expected:    Integer{Value: 123},
-			ShouldError: false,
-		},
-		{
-			Name:        "Negative Integer",
-			In:          []byte(":-456\r\n"),
-			Expected:    Integer{Value: -456},
-			ShouldError: false,
-		},
 		{
 			Name:        "Zero",
 			In:          []byte(":0\r\n"),

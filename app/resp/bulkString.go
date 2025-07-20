@@ -14,13 +14,13 @@ func (bs BulkString) Encode() ([]byte, error) {
 	}
 
 	l := len(*bs.Value)
-	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", l, *bs.Value)), nil
+	return fmt.Appendf(nil, "$%d\r\n%s\r\n", l, *bs.Value), nil
 }
 
 func (BulkString) Decode(b []byte) ([]byte, Value, error) {
 	l := len(b)
-	if l == 0 {
-		return nil, nil, fmt.Errorf("bulk string decode error: expected not fully empty string")
+	if l == 0 || b == nil {
+		return nil, nil, fmt.Errorf("bulk string decode error: expected non-empty data")
 	}
 
 	if string(b) == NULL_BULK_STRING_RESP_2 {
