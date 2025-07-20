@@ -59,6 +59,22 @@ func (r *replica) Start() {
 	r.wg.Wait()
 }
 
+func (r *replica) ConnectToMaster() {
+	r.dialMaster()
+	r.processMasterHandshake()
+	r.handleMaster()
+}
+
+func (r *replica) ReadFromMaster() ([]byte, int, error) {
+	b := make([]byte, 1024)
+	n, err := r.masterConn.Read(b)
+	if errors.Is(err, io.EOF) {
+		return b, n, nil
+	}
+
+	return b, n, err
+}
+
 func (r *replica) acceptClientConnections() {
 	address := fmt.Sprintf("%s:%d", r.args.Host, r.args.Port)
 
@@ -79,26 +95,6 @@ func (r *replica) acceptClientConnections() {
 
 		go r.handleClient(nil, conn, true)
 	}
-}
-
-func (r *replica) ConnectToMaster() {
-	r.dialMaster()
-	r.processMasterHandshake()
-	r.handleMaster()
-}
-
-func (r *replica) handleMaster() {
-	r.handleClient(r.masterConnBuffer, r.masterConn, false)
-}
-
-func (r *replica) ReadFromMaster() ([]byte, int, error) {
-	b := make([]byte, 1024)
-	n, err := r.masterConn.Read(b)
-	if errors.Is(err, io.EOF) {
-		return b, n, nil
-	}
-
-	return b, n, err
 }
 
 func (r *replica) readValueFromMaster() (resp.Value, error) {
@@ -233,6 +229,10 @@ func (r *replica) processMasterHandshakePSYNC() {
 	} else {
 		r.masterConnBuffer = nil
 	}
+}
+
+func (r *replica) handleMaster() {
+	r.handleClient(r.masterConnBuffer, r.masterConn, false)
 }
 
 func (*replica) initReplicationInfo() *replication.Info {

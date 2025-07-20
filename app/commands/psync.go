@@ -19,9 +19,12 @@ func (c *Controller) psync(args []string, conn net.Conn) resp.Value {
 	switch r := c.replication.(type) {
 	case replication.Master:
 		if requestedReplID == "?" && requestedReplOffset == "-1" {
-			go r.SendRDBFile(conn)
 			response := "FULLRESYNC" + " " + r.Info().MasterReplID + " " + "0"
-			return resp.SimpleString{Value: response}
+			if err := c.Write(resp.SimpleString{Value: response}, conn); err != nil {
+				return resp.SimpleError{Value: fmt.Sprintf("failed to send FULLRESYNC: %v", err)}
+			}
+			r.SendRDBFile(conn)
+			return nil
 		}
 		return resp.SimpleError{Value: fmt.Sprintf("psync master unsupported replication id: %s and replication offset: %s", requestedReplID, requestedReplOffset)}
 	case replication.Replica:

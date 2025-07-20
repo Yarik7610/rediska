@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
 	"github.com/codecrafters-io/redis-starter-go/app/config"
@@ -73,9 +72,6 @@ func (m *master) AddReplicaConn(addr string, replicaConn net.Conn) {
 }
 
 func (m *master) SendRDBFile(replicaConn net.Conn) {
-	// Make sleep so first read FULLSRESYNC reponse and after it the contents of RDB file
-	time.Sleep(time.Millisecond * 100)
-
 	// Alternatively here call rdb.ReadRDBFile, but i use hardcoded hex string to pass tests
 	// (In tests i guess they don't use rdb file, so my program returns error that can't find such dir when reading rdb file)
 	b, err := hex.DecodeString(rdb.EMPTY_DB_HEX)

@@ -23,7 +23,7 @@ func NewController(storage *memory.Storage, args *config.Args, replication repli
 
 func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn, writeResponseToConn bool) error {
 	result := c.handleCommand(unit, conn)
-	if writeResponseToConn {
+	if writeResponseToConn && result != nil {
 		err := c.Write(result, conn)
 		if err != nil {
 			return err
