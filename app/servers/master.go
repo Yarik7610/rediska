@@ -32,14 +32,29 @@ func newMaster(args *config.Args) *master {
 }
 
 func (m *master) Start() {
-	ready := make(chan int)
-
-	fmt.Println("START MASTER SERVER")
 	m.initStorage()
-	go m.acceptClientConnections(ready)
-	<-ready
-	close(ready)
-	m.startExpiredKeysCleanup()
+	go m.startExpiredKeysCleanup()
+	m.acceptClientConnections()
+}
+
+func (m *master) acceptClientConnections() {
+	address := fmt.Sprintf("%s:%d", m.args.Host, m.args.Port)
+
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Fatalf("Failed to bind to address: %s\n", address)
+	}
+	defer listener.Close()
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Printf("Error accepting connection: %v\n", err)
+			continue
+		}
+
+		go m.handleClient(nil, conn, true)
+	}
 }
 
 func (m *master) Propagate(args []string) {

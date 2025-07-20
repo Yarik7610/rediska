@@ -2,7 +2,6 @@ package servers
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -66,14 +65,18 @@ func (base *base) persistWithRDBFile() {
 	base.processRDBFile(b)
 }
 
-func (base *base) processRDBFile(b []byte) []byte {
-	items, rest, err := rdb.Decode(b)
+func (base *base) processRDBFile(b []byte) {
+	if b == nil {
+		log.Println("Skip RDB storage seed, no RDB file detected")
+		return
+	}
+
+	items, err := rdb.Decode(b)
 	if err != nil {
 		log.Printf("Skip RDB storage seed, RDB decode error: %v\n", err)
-		return rest
+		return
 	}
 	base.putRDBItemsIntoStorage(items)
-	return rest
 }
 
 func (base *base) putRDBItemsIntoStorage(items map[string]memory.Item) {
@@ -88,59 +91,47 @@ func (base *base) putRDBItemsIntoStorage(items map[string]memory.Item) {
 	}
 }
 
-func (base *base) acceptClientConnections(ready chan<- int) {
-	address := fmt.Sprintf("%s:%d", base.args.Host, base.args.Port)
-
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		log.Fatalf("Failed to bind to address: %s\n", address)
-	}
-	defer listener.Close()
-
-	ready <- 1
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Printf("Error accepting connection: %v\n", err)
-			continue
-		}
-
-		go base.handleClient(conn)
-	}
-}
-
-func (base *base) handleClient(conn net.Conn) {
+func (base *base) handleClient(initialBuffer []byte, conn net.Conn, writeResponseToConn bool) {
 	defer conn.Close()
 
 	buf := make([]byte, 0, 4096)
+	if initialBuffer != nil {
+		log.Println("INITIAL BUFFER", string(initialBuffer))
+		buf = append(buf, initialBuffer...)
+	}
 	tmp := make([]byte, 1024)
 
 	for {
 		n, err := conn.Read(tmp)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
+				log.Printf("connection %s closed: (EOF)", conn.RemoteAddr().String())
 				return
 			}
 			log.Printf("read error: %v", err)
 			return
 		}
 		buf = append(buf, tmp[:n]...)
-
-		//Reading all commands from buffer, if there is more than 1 command
-		for len(buf) > 0 {
-			rest, value, err := base.respController.Decode(buf)
-			if err != nil {
-				log.Printf("decode error: %v", err)
-				fmt.Fprintf(conn, "-ERR %v\r\n", err)
-				return
-			}
-
-			buf = rest
-
-			base.commandController.HandleCommand(value, conn)
-		}
+		buf = base.processCommands(buf, conn, writeResponseToConn)
 	}
+}
+
+func (base *base) processCommands(buf []byte, conn net.Conn, writeResponseToConn bool) []byte {
+	for len(buf) > 0 {
+		rest, value, err := base.respController.Decode(buf)
+		if err != nil {
+			log.Printf("decode error: %v", err)
+			return buf
+		}
+
+		err = base.commandController.HandleCommand(value, conn, writeResponseToConn)
+		if err != nil {
+			log.Printf("handle command error: %v, continue to work", err)
+		}
+
+		buf = rest
+	}
+	return buf
 }
 
 func (base *base) startExpiredKeysCleanup() {

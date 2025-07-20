@@ -21,11 +21,13 @@ func NewController(storage *memory.Storage, args *config.Args, replication repli
 	return &Controller{storage: storage, args: args, replication: replication}
 }
 
-func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn) error {
+func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn, writeResponseToConn bool) error {
 	result := c.handleCommand(unit, conn)
-	err := c.Write(result, conn)
-	if err != nil {
-		return err
+	if writeResponseToConn {
+		err := c.Write(result, conn)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -18,7 +18,7 @@ func NewController() *Controller {
 
 func (*Controller) Decode(b []byte) (rest []byte, value Value, err error) {
 	l := len(b)
-	if l == 0 {
+	if l == 0 || b == nil {
 		return nil, nil, fmt.Errorf("expected not fully empty string")
 	}
 
@@ -34,7 +34,7 @@ func (*Controller) Decode(b []byte) (rest []byte, value Value, err error) {
 	case '-':
 		return SimpleError{}.Decode(b)
 	default:
-		return nil, nil, fmt.Errorf("detected unknown RESP type")
+		return nil, nil, fmt.Errorf("detected unknown RESP type: '%c'", b[0])
 	}
 }
 

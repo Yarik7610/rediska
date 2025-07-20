@@ -15,24 +15,28 @@ type decoder struct {
 	len int
 }
 
-func Decode(b []byte) (map[string]memory.Item, []byte, error) {
+func Decode(b []byte) (map[string]memory.Item, error) {
+	if len(b) == 0 || b == nil {
+		return nil, fmt.Errorf("empty RDB file")
+	}
+
 	dec := decoder{b: b, pos: 0, len: len(b)}
 
 	header, err := dec.decodeHeader()
 	if err != nil {
-		return nil, nil, fmt.Errorf("decode header error: %v", err)
+		return nil, fmt.Errorf("decode header error: %v", err)
 	}
 	fmt.Println(header)
 
 	metadata, err := dec.decodeMetadata()
 	if err != nil {
-		return nil, nil, fmt.Errorf("decode metadata error: %v", err)
+		return nil, fmt.Errorf("decode metadata error: %v", err)
 	}
 	fmt.Println(metadata)
 
 	databases, err := dec.decodeDatabases()
 	if err != nil {
-		return nil, nil, fmt.Errorf("decode database error: %v", err)
+		return nil, fmt.Errorf("decode database error: %v", err)
 	}
 	for _, database := range databases {
 		fmt.Println(database)
@@ -40,11 +44,17 @@ func Decode(b []byte) (map[string]memory.Item, []byte, error) {
 
 	end, err := dec.decodeEnd()
 	if err != nil {
-		return nil, nil, fmt.Errorf("decode end error: %v", err)
+		return nil, fmt.Errorf("decode end error: %v", err)
 	}
 	fmt.Println(end)
 
-	return databases[0].items, dec.b[dec.pos:], nil
+	var items map[string]memory.Item
+	if len(databases) > 0 {
+		items = databases[0].items
+	} else {
+		items = nil
+	}
+	return items, nil
 }
 
 func (dec *decoder) decodeHeader() (*header, error) {
