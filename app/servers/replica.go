@@ -53,26 +53,10 @@ func (r *replica) Start() {
 	r.wg.Add(1)
 	go func() {
 		defer r.wg.Done()
-		r.ConnectToMaster()
+		r.connectToMaster()
 	}()
 
 	r.wg.Wait()
-}
-
-func (r *replica) ConnectToMaster() {
-	r.dialMaster()
-	r.processMasterHandshake()
-	r.handleMaster()
-}
-
-func (r *replica) ReadFromMaster() ([]byte, int, error) {
-	b := make([]byte, 1024)
-	n, err := r.masterConn.Read(b)
-	if errors.Is(err, io.EOF) {
-		return b, n, nil
-	}
-
-	return b, n, err
 }
 
 func (r *replica) acceptClientConnections() {
@@ -97,52 +81,10 @@ func (r *replica) acceptClientConnections() {
 	}
 }
 
-func (r *replica) readValueFromMaster() (resp.Value, error) {
-	if len(r.masterConnBuffer) == 0 {
-		b, n, err := r.ReadFromMaster()
-		if err != nil {
-			return nil, fmt.Errorf("read from master error: %v", err)
-		}
-		r.masterConnBuffer = append(r.masterConnBuffer, b[:n]...)
-	}
-
-	rest, value, err := r.respController.Decode(r.masterConnBuffer)
-	if err != nil {
-		return nil, fmt.Errorf("RESP controller decode error: %v", err)
-	}
-
-	r.masterConnBuffer = rest
-
-	return value, nil
-}
-
-func (r *replica) readRDBFileFromMaster() ([]byte, []byte, error) {
-	b, n, err := r.ReadFromMaster()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if n == 0 || b[0] != '$' {
-		log.Println("No RDB file from master detected, treating all as rest command bytes")
-		return nil, b[:n], nil
-	}
-
-	i := bytes.Index(b, []byte("\r\n"))
-	if i == -1 {
-		return nil, nil, fmt.Errorf("could not find end of RDB file length")
-	}
-
-	rdbFileLen, err := strconv.Atoi(string(b[1:i]))
-	if err != nil {
-		return nil, nil, fmt.Errorf("RDB file length parse error: %v", err)
-	}
-
-	fileContentsIdx := i + 2
-	if fileContentsIdx+rdbFileLen > n {
-		return nil, nil, fmt.Errorf("RDB file incomplete: expected %d bytes, got %d", rdbFileLen, n-fileContentsIdx)
-	}
-
-	return b[fileContentsIdx : fileContentsIdx+rdbFileLen], b[fileContentsIdx+rdbFileLen : n], nil
+func (r *replica) connectToMaster() {
+	r.dialMaster()
+	r.processMasterHandshake()
+	r.handleMaster()
 }
 
 func (r *replica) dialMaster() {
@@ -233,6 +175,64 @@ func (r *replica) processMasterHandshakePSYNC() {
 
 func (r *replica) handleMaster() {
 	r.handleClient(r.masterConnBuffer, r.masterConn, false)
+}
+
+func (r *replica) readFromMaster() ([]byte, int, error) {
+	b := make([]byte, 1024)
+	n, err := r.masterConn.Read(b)
+	if errors.Is(err, io.EOF) {
+		return b, n, nil
+	}
+
+	return b, n, err
+}
+
+func (r *replica) readValueFromMaster() (resp.Value, error) {
+	if len(r.masterConnBuffer) == 0 {
+		b, n, err := r.readFromMaster()
+		if err != nil {
+			return nil, fmt.Errorf("read from master error: %v", err)
+		}
+		r.masterConnBuffer = append(r.masterConnBuffer, b[:n]...)
+	}
+
+	rest, value, err := r.respController.Decode(r.masterConnBuffer)
+	if err != nil {
+		return nil, fmt.Errorf("RESP controller decode error: %v", err)
+	}
+
+	r.masterConnBuffer = rest
+
+	return value, nil
+}
+
+func (r *replica) readRDBFileFromMaster() ([]byte, []byte, error) {
+	b, n, err := r.readFromMaster()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if n == 0 || b[0] != '$' {
+		log.Println("No RDB file from master detected, treating all as rest command bytes")
+		return nil, b[:n], nil
+	}
+
+	i := bytes.Index(b, []byte("\r\n"))
+	if i == -1 {
+		return nil, nil, fmt.Errorf("could not find end of RDB file length")
+	}
+
+	rdbFileLen, err := strconv.Atoi(string(b[1:i]))
+	if err != nil {
+		return nil, nil, fmt.Errorf("RDB file length parse error: %v", err)
+	}
+
+	fileContentsIdx := i + 2
+	if fileContentsIdx+rdbFileLen > n {
+		return nil, nil, fmt.Errorf("RDB file incomplete: expected %d bytes, got %d", rdbFileLen, n-fileContentsIdx)
+	}
+
+	return b[fileContentsIdx : fileContentsIdx+rdbFileLen], b[fileContentsIdx+rdbFileLen : n], nil
 }
 
 func (*replica) initReplicationInfo() *replication.Info {

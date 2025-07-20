@@ -36,26 +36,6 @@ func (m *master) Start() {
 	m.acceptClientConnections()
 }
 
-func (m *master) acceptClientConnections() {
-	address := fmt.Sprintf("%s:%d", m.args.Host, m.args.Port)
-
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		log.Fatalf("Failed to bind to address: %s\n", address)
-	}
-	defer listener.Close()
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Printf("Error accepting connection: %v\n", err)
-			continue
-		}
-
-		go m.handleClient(nil, conn, true)
-	}
-}
-
 func (m *master) Propagate(args []string) {
 	command := resp.CreateBulkStringArray(args...)
 	for addr, conn := range m.replicas {
@@ -83,6 +63,26 @@ func (m *master) SendRDBFile(replicaConn net.Conn) {
 	_, err = replicaConn.Write(response)
 	if err != nil {
 		log.Fatalf("SendRDBFile error: %v", err)
+	}
+}
+
+func (m *master) acceptClientConnections() {
+	address := fmt.Sprintf("%s:%d", m.args.Host, m.args.Port)
+
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Fatalf("Failed to bind to address: %s\n", address)
+	}
+	defer listener.Close()
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Printf("Error accepting connection: %v\n", err)
+			continue
+		}
+
+		go m.handleClient(nil, conn, true)
 	}
 }
 

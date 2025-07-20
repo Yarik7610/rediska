@@ -15,7 +15,7 @@ func (ss SimpleString) Encode() ([]byte, error) {
 		return nil, fmt.Errorf("simple string encode error: can't have '\\r' or '\\n' char in the payload")
 	}
 
-	return []byte(fmt.Sprintf("+%s\r\n", ss.Value)), nil
+	return fmt.Appendf(nil, "+%s\r\n", ss.Value), nil
 }
 
 func (SimpleString) Decode(b []byte) ([]byte, Value, error) {
