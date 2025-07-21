@@ -145,7 +145,7 @@ func (dec *decoder) decodeDatabases() ([]*database, error) {
 		database.items = make(map[string]memory.Item, database.keysCount)
 		err = dec.decodeKeyValuePairs(&database)
 		if err != nil {
-			if errors.Is(err, ErrorEOF) {
+			if errors.Is(err, rdbEOF) {
 				databases = append(databases, &database)
 				break
 			}
@@ -192,7 +192,7 @@ func (dec *decoder) decodeKeyValuePairs(db *database) error {
 			return nil
 		case OP_EOF:
 			dec.pos--
-			return ErrorEOF
+			return rdbEOF
 		default:
 			dec.pos--
 			dec.decodeKeyValue(db, time.Time{})

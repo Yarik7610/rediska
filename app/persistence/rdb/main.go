@@ -25,12 +25,10 @@ type metadata struct {
 
 func (m *metadata) String() string {
 	var b bytes.Buffer
-
 	b.WriteString(fmt.Sprintln("METADATA"))
 	for key, value := range m.data {
 		b.WriteString(fmt.Sprintf("Key: %s, Value: %s\n", key, value))
 	}
-
 	return b.String()
 }
 
@@ -44,13 +42,11 @@ type database struct {
 
 func (d *database) String() string {
 	var b bytes.Buffer
-
 	b.WriteString(fmt.Sprintf("DATABASE #%d\n", d.dbSelector))
 	b.WriteString(fmt.Sprintf("Keys count: %d, Keys with expiration count: %d\n", d.keysCount, d.keysWithExpirationCount))
 	for key, value := range d.items {
 		b.WriteString(fmt.Sprintf("Key: %s, Value: %+v\n", key, value))
 	}
-
 	return b.String()
 }
 
@@ -62,7 +58,7 @@ func (e *end) String() string {
 	return fmt.Sprintf("END\nChecksum: %x\n", e.checksum)
 }
 
-var ErrorEOF error = errors.New("EOF")
+var rdbEOF error = errors.New("EOF")
 
 const (
 	OP_EOF          = 0xFF
