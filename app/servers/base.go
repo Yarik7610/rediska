@@ -96,7 +96,6 @@ func (base *base) handleClient(initialBuffer []byte, conn net.Conn, writeRespons
 
 	buf := make([]byte, 0, 4096)
 	if initialBuffer != nil {
-		log.Println("INITIAL BUFFER", string(initialBuffer))
 		buf = append(buf, initialBuffer...)
 	}
 	tmp := make([]byte, 1024)
@@ -136,10 +135,9 @@ func (base *base) processCommands(buf []byte, conn net.Conn, writeResponseToConn
 
 func (base *base) startExpiredKeysCleanup() {
 	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
 
-	go func() {
-		for range ticker.C {
-			base.storage.CleanExpiredKeys()
-		}
-	}()
+	for range ticker.C {
+		base.storage.CleanExpiredKeys()
+	}
 }
