@@ -25,7 +25,7 @@ func TestUtils(t *testing.T) {
 		},
 		{
 			name:   "traverseUInt16: Read two bytes",
-			buffer: []byte{0x34, 0x12}, // 0x1234 in little-endian
+			buffer: []byte{0x34, 0x12},
 			runTest: func(dec *decoder) (any, error) {
 				return dec.traverseUInt16()
 			},

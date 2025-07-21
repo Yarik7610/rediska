@@ -35,7 +35,7 @@ func TestStringFunctions(t *testing.T) {
 		},
 		{
 			name:   "traverseSpecialString: Case 1 - 16-bit integer string",
-			buffer: []byte{0x34, 0x12}, // 0x1234 in little-endian
+			buffer: []byte{0x34, 0x12},
 			runTest: func(dec *decoder) (any, error) {
 				return dec.traverseSpecialString(1)
 			},
@@ -44,7 +44,7 @@ func TestStringFunctions(t *testing.T) {
 		},
 		{
 			name:   "traverseSpecialString: Case 2 - 32-bit integer string",
-			buffer: []byte{0x78, 0x56, 0x34, 0x12}, // 0x12345678 in little-endian
+			buffer: []byte{0x78, 0x56, 0x34, 0x12},
 			runTest: func(dec *decoder) (any, error) {
 				return dec.traverseSpecialString(2)
 			},
@@ -53,7 +53,7 @@ func TestStringFunctions(t *testing.T) {
 		},
 		{
 			name:   "traverseSpecialString: Case 3 - Unsupported compressed string",
-			buffer: []byte{0xFF}, // Arbitrary byte
+			buffer: []byte{0xFF},
 			runTest: func(dec *decoder) (any, error) {
 				return dec.traverseSpecialString(3)
 			},
