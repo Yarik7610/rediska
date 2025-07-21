@@ -11,6 +11,7 @@ func (dec *decoder) decodeString() (string, error) {
 		return "", fmt.Errorf("decodeLength error: %v", err)
 	}
 
+	fmt.Println(len, isLengthAnIntegerString)
 	var str string
 	if !isLengthAnIntegerString {
 		str, err = dec.traverseStringLen(len)
