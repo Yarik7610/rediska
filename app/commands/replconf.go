@@ -3,6 +3,8 @@ package commands
 import (
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
@@ -10,15 +12,15 @@ import (
 
 func (c *Controller) replconf(args []string, conn net.Conn) resp.Value {
 	if len(args) != 2 {
-		return resp.SimpleError{Value: "REPLCONF command error: only 2 argument supported"}
+		return resp.SimpleError{Value: "REPLCONF command error: only 2 more arguments supported"}
 	}
 
-	section := args[0]
+	secondCommand := args[0]
 	arg := args[1]
 
 	switch r := c.replication.(type) {
 	case replication.Master:
-		switch section {
+		switch secondCommand {
 		case "listening-port":
 			addr := conn.RemoteAddr().String()
 			r.AddReplicaConn(addr, conn)
@@ -29,10 +31,21 @@ func (c *Controller) replconf(args []string, conn net.Conn) resp.Value {
 			}
 			return resp.SimpleString{Value: "OK"}
 		default:
-			return resp.SimpleError{Value: fmt.Sprintf("REPLCONF master unsupported section: %s", section)}
+			return resp.SimpleError{Value: fmt.Sprintf("REPLCONF master unsupported section: %s", secondCommand)}
 		}
 	case replication.Replica:
-		return resp.SimpleError{Value: fmt.Sprintf("REPLCONF isn't supported for replica: %s", section)}
+		switch strings.ToUpper(secondCommand) {
+		case "GETACK":
+			if arg != "*" {
+				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF GETACK unsupported argument: %s", arg)}
+			}
+			response := resp.CreateBulkStringArray("REPLCONF", "ACK", strconv.Itoa(r.Info().MasterReplOffset))
+			if err := c.Write(response, conn); err != nil {
+				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF GETACK response error: %v", err)}
+			}
+			return resp.CreateBulkStringArray("REPLCONF", "ACK", strconv.Itoa(r.Info().MasterReplOffset))
+		}
+		return resp.SimpleError{Value: fmt.Sprintf("REPLCONF isn't supported for replica: %s", secondCommand)}
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("REPLCONF command detected unknown type assertion: %T", r)}
 	}

@@ -213,7 +213,6 @@ func (r *replica) readRDBFileFromMaster() ([]byte, []byte, error) {
 	}
 
 	if n == 0 || b[0] != '$' {
-		log.Println("No RDB file from master detected, treating all as rest command bytes")
 		return nil, b[:n], nil
 	}
 
