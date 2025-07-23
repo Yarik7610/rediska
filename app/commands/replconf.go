@@ -39,11 +39,14 @@ func (c *Controller) replconf(args []string, conn net.Conn) resp.Value {
 			if arg != "*" {
 				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF GETACK unsupported argument: %s", arg)}
 			}
+			if r.GetMasterConn() != conn {
+				return resp.SimpleError{Value: "REPLCONF GETACK * can be send only by master"}
+			}
+
 			response := resp.CreateBulkStringArray("REPLCONF", "ACK", strconv.Itoa(r.Info().MasterReplOffset))
 			if err := c.Write(response, conn); err != nil {
 				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF GETACK response error: %v", err)}
 			}
-			return resp.CreateBulkStringArray("REPLCONF", "ACK", strconv.Itoa(r.Info().MasterReplOffset))
 		}
 		return resp.SimpleError{Value: fmt.Sprintf("REPLCONF isn't supported for replica: %s", secondCommand)}
 	default:

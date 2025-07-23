@@ -29,6 +29,17 @@ func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn, writeResponse
 			return err
 		}
 	}
+
+	if r, ok := c.replication.(replication.Replica); ok {
+		if r.GetMasterConn() == conn {
+			b, err := unit.Encode()
+			if err != nil {
+				return err
+			}
+			c.replication.IncrMasterReplOffset(len(b))
+		}
+	}
+
 	return nil
 }
 

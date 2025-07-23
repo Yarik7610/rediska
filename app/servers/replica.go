@@ -59,6 +59,10 @@ func (r *replica) Start() {
 	r.wg.Wait()
 }
 
+func (r *replica) GetMasterConn() net.Conn {
+	return r.masterConn
+}
+
 func (r *replica) acceptClientConnections() {
 	address := fmt.Sprintf("%s:%d", r.args.Host, r.args.Port)
 

@@ -45,6 +45,10 @@ func (base *base) SetMasterReplOfffset(replOffset int) {
 	base.replicationInfo.MasterReplOffset = replOffset
 }
 
+func (base *base) IncrMasterReplOffset(replOffset int) {
+	base.replicationInfo.MasterReplOffset += replOffset
+}
+
 func (base *base) initStorage() {
 	if base.args.DBDir == "" || base.args.DBFilename == "" {
 		return
