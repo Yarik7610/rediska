@@ -48,7 +48,17 @@ func (m *master) Propagate(args []string) {
 }
 
 func (m *master) AddReplicaConn(addr string, replicaConn net.Conn) {
+	log.Printf("Added replica %s to replicas map", addr)
 	m.replicas[addr] = replicaConn
+}
+
+func (m *master) removeReplicaConn(addr string) {
+	log.Printf("Removed replica %s from replicas map", addr)
+	delete(m.replicas, addr)
+}
+
+func (m *master) GetReplicas() map[string]net.Conn {
+	return m.replicas
 }
 
 func (m *master) SendRDBFile(replicaConn net.Conn) {
@@ -81,9 +91,20 @@ func (m *master) acceptClientConnections() {
 			log.Printf("Error accepting connection: %v\n", err)
 			continue
 		}
-
-		go m.handleClient(nil, conn, true)
+		m.handleClientWithCleanup(nil, conn, true)
 	}
+}
+
+func (m *master) handleClientWithCleanup(initialBuffer []byte, conn net.Conn, writeResponseToConn bool) {
+	go func() {
+		defer m.cleanUpConn(conn)
+		m.handleClient(initialBuffer, conn, writeResponseToConn)
+	}()
+}
+
+func (m *master) cleanUpConn(conn net.Conn) {
+	addr := conn.RemoteAddr().String()
+	m.removeReplicaConn(addr)
 }
 
 func (m *master) initReplicationInfo() *replication.Info {

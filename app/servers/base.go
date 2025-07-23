@@ -55,6 +55,7 @@ func (base *base) initStorage() {
 	}
 
 	if !rdb.IsFileExists(base.args.DBDir, base.args.DBFilename) {
+		log.Printf("Skip RDB storage seed, no such file or directory found")
 		return
 	}
 	base.persistWithRDBFile()
@@ -107,11 +108,12 @@ func (base *base) handleClient(initialBuffer []byte, conn net.Conn, writeRespons
 	for {
 		n, err := conn.Read(tmp)
 		if err != nil {
+			addr := conn.RemoteAddr().String()
 			if errors.Is(err, io.EOF) {
-				log.Printf("connection %s closed: (EOF)", conn.RemoteAddr().String())
+				log.Printf("Connection %s closed: (EOF)", addr)
 				return
 			}
-			log.Printf("read error: %v", err)
+			log.Printf("Connection %s read error: %v", addr, err)
 			return
 		}
 		buf = append(buf, tmp[:n]...)

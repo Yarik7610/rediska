@@ -30,14 +30,12 @@ func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn, writeResponse
 		}
 	}
 
-	if r, ok := c.replication.(replication.Replica); ok {
-		if r.GetMasterConn() == conn {
-			b, err := unit.Encode()
-			if err != nil {
-				return err
-			}
-			c.replication.IncrMasterReplOffset(len(b))
+	if r, ok := c.replication.(replication.Replica); ok && r.GetMasterConn() == conn {
+		b, err := unit.Encode()
+		if err != nil {
+			return err
 		}
+		c.replication.IncrMasterReplOffset(len(b))
 	}
 
 	return nil
@@ -58,7 +56,7 @@ func (c *Controller) handleCommand(unit resp.Value, conn net.Conn) resp.Value {
 	case resp.Array:
 		return c.handleArrayCommand(u, conn)
 	case resp.SimpleString:
-		return c.handleSimpleStringCommand(u)
+		return c.handleSimpleStringCommand(u, conn)
 	default:
 		return resp.SimpleError{Value: "commands must be sent as RESP array or simple string"}
 	}
@@ -104,7 +102,7 @@ func (c *Controller) handleArrayCommand(unit resp.Array, conn net.Conn) resp.Val
 	}
 }
 
-func (c *Controller) handleSimpleStringCommand(unit resp.SimpleString) resp.Value {
+func (c *Controller) handleSimpleStringCommand(unit resp.SimpleString, conn net.Conn) resp.Value {
 	switch unit.Value {
 	case "PING":
 		return c.ping()

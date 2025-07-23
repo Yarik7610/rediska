@@ -20,7 +20,7 @@ func (c *Controller) replconf(args []string, conn net.Conn) resp.Value {
 
 	switch r := c.replication.(type) {
 	case replication.Master:
-		switch secondCommand {
+		switch strings.ToLower(secondCommand) {
 		case "listening-port":
 			addr := conn.RemoteAddr().String()
 			r.AddReplicaConn(addr, conn)
@@ -31,13 +31,13 @@ func (c *Controller) replconf(args []string, conn net.Conn) resp.Value {
 			}
 			return resp.SimpleString{Value: "OK"}
 		default:
-			return resp.SimpleError{Value: fmt.Sprintf("REPLCONF master unsupported section: %s", secondCommand)}
+			return resp.SimpleError{Value: fmt.Sprintf("REPLCONF master unsupported second command: %s", secondCommand)}
 		}
 	case replication.Replica:
 		switch strings.ToUpper(secondCommand) {
 		case "GETACK":
 			if arg != "*" {
-				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF GETACK unsupported argument: %s", arg)}
+				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF GETACK replica unsupported argument: %s", arg)}
 			}
 			if r.GetMasterConn() != conn {
 				return resp.SimpleError{Value: "REPLCONF GETACK * can be send only by master"}
@@ -45,8 +45,9 @@ func (c *Controller) replconf(args []string, conn net.Conn) resp.Value {
 
 			response := resp.CreateBulkStringArray("REPLCONF", "ACK", strconv.Itoa(r.Info().MasterReplOffset))
 			if err := c.Write(response, conn); err != nil {
-				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF GETACK response error: %v", err)}
+				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF GETACK * write to master error: %v", err)}
 			}
+			return nil
 		}
 		return resp.SimpleError{Value: fmt.Sprintf("REPLCONF isn't supported for replica: %s", secondCommand)}
 	default:

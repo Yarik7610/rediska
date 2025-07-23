@@ -63,6 +63,15 @@ func (r *replica) GetMasterConn() net.Conn {
 	return r.masterConn
 }
 
+func (r *replica) UpdateMasterReplOffsetWithCmd(cmd resp.Value) {
+	encodedCmd, err := cmd.Encode()
+	if err != nil {
+		log.Printf("Skipping master replication offset update in replica: command encoding error: %v\n", err)
+		return
+	}
+	r.IncrMasterReplOffset(len(encodedCmd))
+}
+
 func (r *replica) acceptClientConnections() {
 	address := fmt.Sprintf("%s:%d", r.args.Host, r.args.Port)
 

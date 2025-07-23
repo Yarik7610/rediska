@@ -10,7 +10,7 @@ import (
 
 func (c *Controller) psync(args []string, conn net.Conn) resp.Value {
 	if len(args) != 2 {
-		return resp.SimpleError{Value: "psync command error: only 2 argument supported"}
+		return resp.SimpleError{Value: "PSYNC command error: only 2 argument supported"}
 	}
 
 	requestedReplID := args[0]
@@ -19,17 +19,22 @@ func (c *Controller) psync(args []string, conn net.Conn) resp.Value {
 	switch r := c.replication.(type) {
 	case replication.Master:
 		if requestedReplID == "?" && requestedReplOffset == "-1" {
+			replicas := r.GetReplicas()
+			if _, ok := replicas[conn.RemoteAddr().String()]; !ok {
+				return resp.SimpleError{Value: "PSYNC command error: failed to send FULLRESYNC, because no such replica exists"}
+			}
+
 			response := "FULLRESYNC" + " " + r.Info().MasterReplID + " " + "0"
 			if err := c.Write(resp.SimpleString{Value: response}, conn); err != nil {
-				return resp.SimpleError{Value: fmt.Sprintf("failed to send FULLRESYNC: %v", err)}
+				return resp.SimpleError{Value: fmt.Sprintf("PSYNC command error: failed to send FULLRESYNC: %v", err)}
 			}
 			r.SendRDBFile(conn)
 			return nil
 		}
-		return resp.SimpleError{Value: fmt.Sprintf("psync master unsupported replication id: %s and replication offset: %s", requestedReplID, requestedReplOffset)}
+		return resp.SimpleError{Value: fmt.Sprintf("PSYNC master unsupported replication id: %s and replication offset: %s", requestedReplID, requestedReplOffset)}
 	case replication.Replica:
-		return resp.SimpleError{Value: "psync isn't supported for replica"}
+		return resp.SimpleError{Value: "PSYNC isn't supported for replica"}
 	default:
-		return resp.SimpleError{Value: fmt.Sprintf("psync command detected unknown type assertion: %T", r)}
+		return resp.SimpleError{Value: fmt.Sprintf("PSYNC command detected unknown type assertion: %T", r)}
 	}
 }
