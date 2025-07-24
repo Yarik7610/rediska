@@ -28,6 +28,15 @@ func (c *Controller) wait(args []string, conn net.Conn) resp.Value {
 			return resp.Integer{Value: 0}
 		}
 
+		// timer := time.After(time.Millisecond * time.Duration(timeoutMS))
+		// select  {
+		// case timer<-:
+
+		// }
+		// case
+		// for _, replica := range m.GetReplicas() {
+
+		// }
 		return resp.Integer{Value: len(m.GetReplicas())}
 	}
 

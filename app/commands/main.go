@@ -44,12 +44,21 @@ func (c *Controller) Write(cmd resp.Value, conn net.Conn) error {
 }
 
 func (c *Controller) updateMasterReplOffset(cmd resp.Value, conn net.Conn) error {
-	if r, ok := c.replication.(replication.Replica); ok && r.GetMasterConn() == conn {
-		b, err := cmd.Encode()
-		if err != nil {
-			return err
+	b, err := cmd.Encode()
+	if err != nil {
+		return err
+	}
+	l := len(b)
+
+	switch r := c.replication.(type) {
+	case replication.Replica:
+		if r.GetMasterConn() == conn {
+			c.replication.IncrMasterReplOffset(l)
 		}
-		c.replication.IncrMasterReplOffset(len(b))
+	case replication.Master:
+		if ok := isMastersBacklogBufferCommand(cmd); ok {
+			c.replication.IncrMasterReplOffset(l)
+		}
 	}
 	return nil
 }
