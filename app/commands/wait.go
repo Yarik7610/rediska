@@ -14,18 +14,22 @@ func (c *Controller) wait(args []string, conn net.Conn) resp.Value {
 		return resp.SimpleError{Value: "WAIT command error: only 2 more arguments supported"}
 	}
 
-	if _, ok := c.replication.(replication.Master); !ok {
-		return resp.SimpleError{Value: "WAIT cannot be used with replica instances"}
+	if m, ok := c.replication.(replication.Master); ok {
+		numReplicas, err := strconv.Atoi(args[0])
+		if err != nil {
+			return resp.SimpleError{Value: fmt.Sprintf("WAIT command number of replicas atoi error: %v", err)}
+		}
+		_, err = strconv.Atoi(args[1])
+		if err != nil {
+			return resp.SimpleError{Value: fmt.Sprintf("WAIT command timeout (MS) atoi error: %v", err)}
+		}
+
+		if numReplicas == 0 {
+			return resp.Integer{Value: 0}
+		}
+
+		return resp.Integer{Value: len(m.GetReplicas())}
 	}
 
-	numReplicas, err := strconv.Atoi(args[0])
-	if err != nil {
-		return resp.SimpleError{Value: fmt.Sprintf("WAIT command number of replicas atoi error: %v", err)}
-	}
-	_, err = strconv.Atoi(args[1])
-	if err != nil {
-		return resp.SimpleError{Value: fmt.Sprintf("WAIT command timeout (MS) atoi error: %v", err)}
-	}
-
-	return resp.Integer{Value: numReplicas}
+	return resp.SimpleError{Value: "WAIT cannot be used with replica instances"}
 }
