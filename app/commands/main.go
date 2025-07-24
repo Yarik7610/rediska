@@ -100,6 +100,8 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.replconf(args, conn)
 	case "PSYNC":
 		return c.psync(args, conn)
+	case "WAIT":
+		return c.wait(args, conn)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
