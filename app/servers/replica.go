@@ -220,18 +220,40 @@ func (r *replica) readValueFromMaster() (resp.Value, error) {
 }
 
 func (r *replica) readRDBFileFromMaster() ([]byte, []byte, error) {
-	b, n, err := r.readFromMaster()
-	if err != nil {
-		return nil, nil, err
+	b := r.masterConnBuffer
+	n := len(b)
+
+	if n == 0 || n < 2 || b[0] != '$' {
+		tmp, nRead, err := r.readFromMaster()
+		if err != nil {
+			return nil, nil, err
+		}
+		b = append(b, tmp[:nRead]...)
+		n = len(b)
 	}
 
 	if n == 0 || b[0] != '$' {
-		return nil, b[:n], nil
+		r.masterConnBuffer = b
+		return nil, b, nil
 	}
 
 	i := bytes.Index(b, []byte("\r\n"))
 	if i == -1 {
-		return nil, nil, fmt.Errorf("could not find end of RDB file length")
+		for i == -1 && n < 4096 {
+			tmp, nRead, err := r.readFromMaster()
+			if err != nil {
+				return nil, nil, err
+			}
+			if nRead == 0 {
+				return nil, nil, fmt.Errorf("unexpected EOF while reading RDB file length")
+			}
+			b = append(b, tmp[:nRead]...)
+			n = len(b)
+			i = bytes.Index(b, []byte("\r\n"))
+		}
+		if i == -1 {
+			return nil, nil, fmt.Errorf("could not find end of RDB file length")
+		}
 	}
 
 	rdbFileLen, err := strconv.Atoi(string(b[1:i]))
@@ -241,10 +263,25 @@ func (r *replica) readRDBFileFromMaster() ([]byte, []byte, error) {
 
 	fileContentsIdx := i + 2
 	if fileContentsIdx+rdbFileLen > n {
-		return nil, nil, fmt.Errorf("RDB file incomplete: expected %d bytes, got %d", rdbFileLen, n-fileContentsIdx)
+		for fileContentsIdx+rdbFileLen > n {
+			tmp, nRead, err := r.readFromMaster()
+			if err != nil {
+				return nil, nil, err
+			}
+			if nRead == 0 {
+				return nil, nil, fmt.Errorf("unexpected EOF while reading RDB file")
+			}
+			b = append(b, tmp[:nRead]...)
+			n = len(b)
+		}
 	}
 
-	return b[fileContentsIdx : fileContentsIdx+rdbFileLen], b[fileContentsIdx+rdbFileLen : n], nil
+	rdbPayload := b[fileContentsIdx : fileContentsIdx+rdbFileLen]
+	restBytes := b[fileContentsIdx+rdbFileLen:]
+
+	r.masterConnBuffer = restBytes
+
+	return rdbPayload, restBytes, nil
 }
 
 func (*replica) initReplicationInfo() *replication.Info {

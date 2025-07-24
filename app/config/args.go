@@ -26,7 +26,7 @@ func (replcfg *replicaOfConfig) String() string {
 }
 
 func NewArgs() *Args {
-	host := flag.String("host", "0.0.0.0", "The host of redis server")
+	host := flag.String("host", "127.0.0.1", "The host of redis server")
 	port := flag.Int("port", 6379, "The port of redis server")
 	dir := flag.String("dir", "", "The path to RDB")
 	filename := flag.String("dbfilename", "", "The filename of RDB")
