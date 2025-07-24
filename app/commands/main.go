@@ -21,28 +21,20 @@ func NewController(storage *memory.Storage, args *config.Args, replication repli
 	return &Controller{storage: storage, args: args, replication: replication}
 }
 
-func (c *Controller) HandleCommand(unit resp.Value, conn net.Conn, writeResponseToConn bool) error {
-	result := c.handleCommand(unit, conn)
+func (c *Controller) HandleCommand(cmd resp.Value, conn net.Conn, writeResponseToConn bool) error {
+	result := c.handleCommand(cmd, conn)
 	if writeResponseToConn && result != nil {
 		err := c.Write(result, conn)
 		if err != nil {
 			return err
 		}
 	}
-
-	if r, ok := c.replication.(replication.Replica); ok && r.GetMasterConn() == conn {
-		b, err := unit.Encode()
-		if err != nil {
-			return err
-		}
-		c.replication.IncrMasterReplOffset(len(b))
-	}
-
+	c.updateMasterReplOffset(cmd, conn)
 	return nil
 }
 
-func (c *Controller) Write(unit resp.Value, conn net.Conn) error {
-	encoded, err := unit.Encode()
+func (c *Controller) Write(cmd resp.Value, conn net.Conn) error {
+	encoded, err := cmd.Encode()
 	if err != nil {
 		fmt.Fprintf(conn, "-ERR encode error: %v\r\n", err)
 		return err
@@ -51,25 +43,36 @@ func (c *Controller) Write(unit resp.Value, conn net.Conn) error {
 	return err
 }
 
-func (c *Controller) handleCommand(unit resp.Value, conn net.Conn) resp.Value {
-	switch u := unit.(type) {
+func (c *Controller) updateMasterReplOffset(cmd resp.Value, conn net.Conn) error {
+	if r, ok := c.replication.(replication.Replica); ok && r.GetMasterConn() == conn {
+		b, err := cmd.Encode()
+		if err != nil {
+			return err
+		}
+		c.replication.IncrMasterReplOffset(len(b))
+	}
+	return nil
+}
+
+func (c *Controller) handleCommand(cmd resp.Value, conn net.Conn) resp.Value {
+	switch cmd := cmd.(type) {
 	case resp.Array:
-		return c.handleArrayCommand(u, conn)
+		return c.handleArrayCommand(cmd, conn)
 	case resp.SimpleString:
-		return c.handleSimpleStringCommand(u, conn)
+		return c.handleSimpleStringCommand(cmd)
 	default:
 		return resp.SimpleError{Value: "commands must be sent as RESP array or simple string"}
 	}
 }
 
-func (c *Controller) handleArrayCommand(unit resp.Array, conn net.Conn) resp.Value {
-	if len(unit.Value) == 0 {
-		return resp.SimpleError{Value: "empty RESP array"}
+func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Value {
+	if len(cmd.Value) == 0 {
+		return resp.SimpleError{Value: "empty RESP command array"}
 	}
 
-	commandAndArgs, err := extractCommandAndArgs(unit.Value)
+	commandAndArgs, err := extractCommandAndArgs(cmd.Value)
 	if err != nil {
-		return resp.SimpleError{Value: fmt.Sprintf("extract command and args from RESP array error: %v", err)}
+		return resp.SimpleError{Value: fmt.Sprintf("extract command and args from RESP array command error: %v", err)}
 	}
 
 	command := commandAndArgs[0]
@@ -102,12 +105,12 @@ func (c *Controller) handleArrayCommand(unit resp.Array, conn net.Conn) resp.Val
 	}
 }
 
-func (c *Controller) handleSimpleStringCommand(unit resp.SimpleString, conn net.Conn) resp.Value {
-	switch unit.Value {
+func (c *Controller) handleSimpleStringCommand(cmd resp.SimpleString) resp.Value {
+	switch cmd.Value {
 	case "PING":
 		return c.ping()
 	default:
-		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", unit.Value)}
+		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", cmd.Value)}
 	}
 }
 

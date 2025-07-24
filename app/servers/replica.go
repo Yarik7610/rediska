@@ -63,15 +63,6 @@ func (r *replica) GetMasterConn() net.Conn {
 	return r.masterConn
 }
 
-func (r *replica) UpdateMasterReplOffsetWithCmd(cmd resp.Value) {
-	encodedCmd, err := cmd.Encode()
-	if err != nil {
-		log.Printf("Skipping master replication offset update in replica: command encoding error: %v\n", err)
-		return
-	}
-	r.IncrMasterReplOffset(len(encodedCmd))
-}
-
 func (r *replica) acceptClientConnections() {
 	address := fmt.Sprintf("%s:%d", r.args.Host, r.args.Port)
 
@@ -223,13 +214,9 @@ func (r *replica) readRDBFileFromMaster() ([]byte, []byte, error) {
 	b := r.masterConnBuffer
 	n := len(b)
 
-	if n == 0 || n < 2 || b[0] != '$' {
-		tmp, nRead, err := r.readFromMaster()
-		if err != nil {
-			return nil, nil, err
-		}
-		b = append(b, tmp[:nRead]...)
-		n = len(b)
+	b, n, err := r.ensureInitialRDBData(b, n)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if n == 0 || b[0] != '$' {
@@ -237,43 +224,20 @@ func (r *replica) readRDBFileFromMaster() ([]byte, []byte, error) {
 		return nil, b, nil
 	}
 
-	i := bytes.Index(b, []byte("\r\n"))
-	if i == -1 {
-		for i == -1 && n < 4096 {
-			tmp, nRead, err := r.readFromMaster()
-			if err != nil {
-				return nil, nil, err
-			}
-			if nRead == 0 {
-				return nil, nil, fmt.Errorf("unexpected EOF while reading RDB file length")
-			}
-			b = append(b, tmp[:nRead]...)
-			n = len(b)
-			i = bytes.Index(b, []byte("\r\n"))
-		}
-		if i == -1 {
-			return nil, nil, fmt.Errorf("could not find end of RDB file length")
-		}
+	b, n, i, err := r.findLengthDelimiter(b, n)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	rdbFileLen, err := strconv.Atoi(string(b[1:i]))
+	rdbFileLen, err := r.parseRDBFileLength(b, i)
 	if err != nil {
-		return nil, nil, fmt.Errorf("RDB file length parse error: %v", err)
+		return nil, nil, err
 	}
 
 	fileContentsIdx := i + 2
-	if fileContentsIdx+rdbFileLen > n {
-		for fileContentsIdx+rdbFileLen > n {
-			tmp, nRead, err := r.readFromMaster()
-			if err != nil {
-				return nil, nil, err
-			}
-			if nRead == 0 {
-				return nil, nil, fmt.Errorf("unexpected EOF while reading RDB file")
-			}
-			b = append(b, tmp[:nRead]...)
-			n = len(b)
-		}
+	b, _, err = r.readFullRDBFileContent(b, n, fileContentsIdx, rdbFileLen)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	rdbPayload := b[fileContentsIdx : fileContentsIdx+rdbFileLen]
@@ -282,6 +246,71 @@ func (r *replica) readRDBFileFromMaster() ([]byte, []byte, error) {
 	r.masterConnBuffer = restBytes
 
 	return rdbPayload, restBytes, nil
+}
+
+func (r *replica) ensureInitialRDBData(b []byte, n int) ([]byte, int, error) {
+	if n == 0 || n < 2 || b[0] != '$' {
+		tmp, nRead, err := r.readFromMaster()
+		if err != nil {
+			return nil, 0, err
+		}
+		b = append(b, tmp[:nRead]...)
+		n = len(b)
+	}
+	return b, n, nil
+}
+
+func (r *replica) findLengthDelimiter(b []byte, n int) ([]byte, int, int, error) {
+	i := bytes.Index(b, []byte("\r\n"))
+	if i == -1 {
+		for i == -1 && n < 4096 {
+			var err error
+			b, err = r.appendDataFromMaster(b)
+			if err != nil {
+				return nil, 0, 0, err
+			}
+			n = len(b)
+			i = bytes.Index(b, []byte("\r\n"))
+		}
+		if i == -1 {
+			return nil, 0, 0, fmt.Errorf("could not find end of RDB file length")
+		}
+	}
+	return b, n, i, nil
+}
+
+func (r *replica) parseRDBFileLength(b []byte, i int) (int, error) {
+	rdbFileLen, err := strconv.Atoi(string(b[1:i]))
+	if err != nil {
+		return 0, fmt.Errorf("RDB file length parse error: %v", err)
+	}
+	return rdbFileLen, nil
+}
+
+func (r *replica) readFullRDBFileContent(b []byte, n, fileContentsIdx, rdbFileLen int) ([]byte, int, error) {
+	if fileContentsIdx+rdbFileLen > n {
+		for fileContentsIdx+rdbFileLen > n {
+			var err error
+			b, err = r.appendDataFromMaster(b)
+			if err != nil {
+				return nil, 0, err
+			}
+			n = len(b)
+		}
+	}
+	return b, n, nil
+}
+
+func (r *replica) appendDataFromMaster(b []byte) ([]byte, error) {
+	tmp, nRead, err := r.readFromMaster()
+	if err != nil {
+		return nil, err
+	}
+	if nRead == 0 {
+		return nil, fmt.Errorf("unexpected EOF while reading data from master")
+	}
+	b = append(b, tmp[:nRead]...)
+	return b, nil
 }
 
 func (*replica) initReplicationInfo() *replication.Info {

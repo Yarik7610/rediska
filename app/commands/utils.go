@@ -7,10 +7,10 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func extractCommandAndArgs(arr []resp.Value) ([]string, error) {
-	result := make([]string, 0, len(arr))
+func extractCommandAndArgs(commandAndArgs []resp.Value) ([]string, error) {
+	result := make([]string, 0, len(commandAndArgs))
 
-	for i, unit := range arr {
+	for i, unit := range commandAndArgs {
 		switch u := unit.(type) {
 		case resp.BulkString:
 			if u.Value == nil {
