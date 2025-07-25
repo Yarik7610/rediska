@@ -81,17 +81,17 @@ func (base *base) processRDBFile(b []byte) {
 		log.Printf("Skip RDB storage seed, RDB decode error: %v\n", err)
 		return
 	}
-	base.putRDBItemsIntoStorage(items)
+	base.putRDBStringItemsIntoStorage(items)
 }
 
-func (base *base) putRDBItemsIntoStorage(items map[string]memory.Item) {
+func (base *base) putRDBStringItemsIntoStorage(items map[string]memory.String) {
 	for key, item := range items {
-		if memory.ItemHasExpiration(&item) {
-			if !memory.ItemExpired(&item) {
-				base.storage.SetWithExpiry(key, item.Value, item.Expires)
+		if base.storage.StringStorage.ItemHasExpiration(&item) {
+			if !base.storage.StringStorage.ItemExpired(&item) {
+				base.storage.StringStorage.SetWithExpiry(key, item.Value, item.Expires)
 			}
 		} else {
-			base.storage.Set(key, item.Value)
+			base.storage.StringStorage.Set(key, item.Value)
 		}
 	}
 }
@@ -139,11 +139,11 @@ func (base *base) processCommands(buf []byte, conn net.Conn, writeResponseToConn
 	return buf
 }
 
-func (base *base) startExpiredKeysCleanup() {
+func (base *base) startExpiredStringKeysCleanup() {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		base.storage.CleanExpiredKeys()
+		base.storage.StringStorage.CleanExpiredKeys()
 	}
 }

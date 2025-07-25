@@ -15,7 +15,7 @@ type decoder struct {
 	len int
 }
 
-func Decode(b []byte) (map[string]memory.Item, error) {
+func Decode(b []byte) (map[string]memory.String, error) {
 	if len(b) == 0 || b == nil {
 		return nil, fmt.Errorf("empty RDB file")
 	}
@@ -48,7 +48,7 @@ func Decode(b []byte) (map[string]memory.Item, error) {
 	}
 	fmt.Println(end)
 
-	var items map[string]memory.Item
+	var items map[string]memory.String
 	if len(databases) > 0 {
 		items = databases[0].items
 	} else {
@@ -142,7 +142,7 @@ func (dec *decoder) decodeDatabases() ([]*database, error) {
 			return nil, fmt.Errorf("database keys with expiration count error: %v", err)
 		}
 
-		database.items = make(map[string]memory.Item, database.keysCount)
+		database.items = make(map[string]memory.String, database.keysCount)
 		err = dec.decodeKeyValuePairs(&database)
 		if err != nil {
 			if errors.Is(err, rdbEOF) {
@@ -246,7 +246,7 @@ func (dec *decoder) decodeKeyValue(db *database, expires time.Time) error {
 		return fmt.Errorf("decode value error: %v", err)
 	}
 
-	db.items[key] = memory.Item{Value: value, Expires: expires}
+	db.items[key] = memory.String{Value: value, Expires: expires}
 	return nil
 }
 

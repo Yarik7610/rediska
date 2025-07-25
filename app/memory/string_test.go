@@ -11,7 +11,7 @@ import (
 
 func TestStorage(t *testing.T) {
 	t.Run("Concurrent Set and Get mixed", func(t *testing.T) {
-		storage := NewStorage()
+		stringStorage := NewStringStorage()
 		var wg sync.WaitGroup
 
 		count := 100
@@ -27,12 +27,12 @@ func TestStorage(t *testing.T) {
 		for i := range count {
 			go func(idx int) {
 				defer wg.Done()
-				storage.Set(keys[idx], values[idx])
+				stringStorage.Set(keys[idx], values[idx])
 			}(i)
 
 			go func(idx int) {
 				defer wg.Done()
-				item, ok := storage.Get(keys[idx])
+				item, ok := stringStorage.Get(keys[idx])
 				if ok {
 					assert.Equal(t, values[idx], item.Value)
 				}
@@ -42,7 +42,7 @@ func TestStorage(t *testing.T) {
 	})
 
 	t.Run("Concurrent SetWithExpiry and Get mixed", func(t *testing.T) {
-		storage := NewStorage()
+		stringStorage := NewStringStorage()
 		var wg sync.WaitGroup
 
 		count := 100
@@ -58,12 +58,12 @@ func TestStorage(t *testing.T) {
 		for i := range count {
 			go func(idx int) {
 				defer wg.Done()
-				storage.SetWithExpiry(keys[idx], values[idx], time.Now().Add(100*time.Millisecond))
+				stringStorage.SetWithExpiry(keys[idx], values[idx], time.Now().Add(100*time.Millisecond))
 			}(i)
 
 			go func(idx int) {
 				defer wg.Done()
-				item, ok := storage.Get(keys[idx])
+				item, ok := stringStorage.Get(keys[idx])
 				if ok {
 					assert.Equal(t, values[idx], item.Value)
 					assert.False(t, item.Expires.IsZero())
@@ -77,7 +77,7 @@ func TestStorage(t *testing.T) {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
-				item, ok := storage.Get(keys[idx])
+				item, ok := stringStorage.Get(keys[idx])
 				assert.False(t, ok)
 				assert.Nil(t, item)
 			}(i)
@@ -86,50 +86,50 @@ func TestStorage(t *testing.T) {
 	})
 
 	t.Run("GetKeys with mixed keys", func(t *testing.T) {
-		storage := NewStorage()
-		storage.Set("key1", "value1")
-		storage.SetWithExpiry("key2", "value2", time.Now().Add(50*time.Millisecond))
-		storage.SetWithExpiry("key3", "value3", time.Now().Add(-1))
+		stringStorage := NewStringStorage()
+		stringStorage.Set("key1", "value1")
+		stringStorage.SetWithExpiry("key2", "value2", time.Now().Add(50*time.Millisecond))
+		stringStorage.SetWithExpiry("key3", "value3", time.Now().Add(-1))
 
 		time.Sleep(100 * time.Millisecond)
 
-		keys := storage.GetKeys()
+		keys := stringStorage.GetKeys()
 		assert.Equal(t, []string{"key1"}, keys)
 
-		_, ok := storage.Get("key2")
+		_, ok := stringStorage.Get("key2")
 		assert.False(t, ok)
-		_, ok = storage.Get("key3")
+		_, ok = stringStorage.Get("key3")
 		assert.False(t, ok)
 	})
 
 	t.Run("CleanExpiredKeys", func(t *testing.T) {
-		storage := NewStorage()
+		stringStorage := NewStringStorage()
 
-		storage.SetWithExpiry("key1", "value1", time.Now().Add(50*time.Millisecond))
-		storage.Set("key2", "value2")
+		stringStorage.SetWithExpiry("key1", "value1", time.Now().Add(50*time.Millisecond))
+		stringStorage.Set("key2", "value2")
 
 		time.Sleep(100 * time.Millisecond)
 
-		storage.CleanExpiredKeys()
+		stringStorage.CleanExpiredKeys()
 
-		_, ok := storage.Get("key1")
+		_, ok := stringStorage.Get("key1")
 		assert.False(t, ok)
 
-		item, ok := storage.Get("key2")
+		item, ok := stringStorage.Get("key2")
 		assert.True(t, ok)
 		assert.Equal(t, "value2", item.Value)
 	})
 
 	t.Run("Non-existent key", func(t *testing.T) {
-		storage := NewStorage()
+		stringStorage := NewStringStorage()
 
-		item, ok := storage.Get("nonexistent")
+		item, ok := stringStorage.Get("nonexistent")
 		assert.False(t, ok)
 		assert.Nil(t, item)
 	})
 
 	t.Run("Concurrent overwrite", func(t *testing.T) {
-		storage := NewStorage()
+		stringStorage := NewStringStorage()
 
 		var wg sync.WaitGroup
 		key := "key"
@@ -143,21 +143,21 @@ func TestStorage(t *testing.T) {
 			go func(idx int) {
 				defer wg.Done()
 				value := fmt.Sprintf("value%d", idx)
-				storage.Set(key, value)
+				stringStorage.Set(key, value)
 			}(i)
 		}
 		wg.Wait()
 
-		item, ok := storage.Get(key)
+		item, ok := stringStorage.Get(key)
 		assert.True(t, ok)
 		assert.Contains(t, expectedValues, item.Value)
 	})
 
 	t.Run("SetWithExpiry with zero expiry", func(t *testing.T) {
-		storage := NewStorage()
-		storage.SetWithExpiry("key", "value", time.Now().Add(0))
+		stringStorage := NewStringStorage()
+		stringStorage.SetWithExpiry("key", "value", time.Now().Add(0))
 
-		item, ok := storage.Get("key")
+		item, ok := stringStorage.Get("key")
 		assert.False(t, ok)
 		assert.Nil(t, item)
 	})

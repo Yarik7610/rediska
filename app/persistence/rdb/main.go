@@ -37,7 +37,7 @@ type database struct {
 	dbSelector              int
 	keysCount               int
 	keysWithExpirationCount int
-	items                   map[string]memory.Item
+	items                   map[string]memory.String
 }
 
 func (d *database) String() string {

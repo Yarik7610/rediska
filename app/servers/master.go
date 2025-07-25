@@ -38,7 +38,7 @@ func newMaster(args *config.Args) *master {
 
 func (m *master) Start() {
 	m.initStorage()
-	go m.startExpiredKeysCleanup()
+	go m.startExpiredStringKeysCleanup()
 	m.acceptClientConnections()
 }
 

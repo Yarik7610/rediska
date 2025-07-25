@@ -12,7 +12,7 @@ func TestDecode(t *testing.T) {
 	tests := []struct {
 		name        string
 		buffer      []byte
-		expected    map[string]memory.Item
+		expected    map[string]memory.String
 		expectedErr bool
 	}{
 		{
@@ -22,7 +22,7 @@ func TestDecode(t *testing.T) {
 				[]byte{OP_AUX, 0x03, 'k', 'e', 'y', 0x05, 'v', 'a', 'l', 'u', 'e'}...),
 				[]byte{OP_SELECTDB, 0x00, OP_RESIZEDB, 0x01, 0x00, STRING_ENCODING, 0x03, 'k', 'e', 'y', 0x03, 'v', 'a', 'l'}...),
 				[]byte{OP_EOF, 0, 0, 0, 0, 0, 0, 0, 0}...),
-			expected: map[string]memory.Item{
+			expected: map[string]memory.String{
 				"key": {Value: "val", Expires: time.Time{}},
 			},
 			expectedErr: false,
@@ -162,7 +162,7 @@ func TestDecodeDatabases(t *testing.T) {
 					dbSelector:              0,
 					keysCount:               1,
 					keysWithExpirationCount: 0,
-					items: map[string]memory.Item{
+					items: map[string]memory.String{
 						"key": {Value: "val", Expires: time.Time{}},
 					},
 				},
@@ -246,7 +246,7 @@ func TestDecodeKeyValueFunctions(t *testing.T) {
 		buffer        []byte
 		expires       time.Time
 		runTest       func(*decoder, *database) error
-		expectedItems map[string]memory.Item
+		expectedItems map[string]memory.String
 		expectedErr   bool
 	}{
 		{
@@ -259,7 +259,7 @@ func TestDecodeKeyValueFunctions(t *testing.T) {
 			runTest: func(dec *decoder, db *database) error {
 				return dec.decodeKeyValuePairs(db)
 			},
-			expectedItems: map[string]memory.Item{
+			expectedItems: map[string]memory.String{
 				"key1": {Value: "val1", Expires: time.Time{}},
 				"key2": {Value: "val2", Expires: time.Time{}},
 			},
@@ -271,7 +271,7 @@ func TestDecodeKeyValueFunctions(t *testing.T) {
 			runTest: func(dec *decoder, db *database) error {
 				return dec.decodeKeyValuePairs(db)
 			},
-			expectedItems: map[string]memory.Item{},
+			expectedItems: map[string]memory.String{},
 			expectedErr:   true,
 		},
 		{
@@ -280,7 +280,7 @@ func TestDecodeKeyValueFunctions(t *testing.T) {
 			runTest: func(dec *decoder, db *database) error {
 				return dec.decodeKeyValuePairs(db)
 			},
-			expectedItems: map[string]memory.Item{},
+			expectedItems: map[string]memory.String{},
 			expectedErr:   false,
 		},
 		{
@@ -289,7 +289,7 @@ func TestDecodeKeyValueFunctions(t *testing.T) {
 			runTest: func(dec *decoder, db *database) error {
 				return dec.decodeKeyValueMS(db)
 			},
-			expectedItems: map[string]memory.Item{
+			expectedItems: map[string]memory.String{
 				"key": {Value: "val", Expires: time.UnixMilli(1000)},
 			},
 			expectedErr: false,
@@ -300,7 +300,7 @@ func TestDecodeKeyValueFunctions(t *testing.T) {
 			runTest: func(dec *decoder, db *database) error {
 				return dec.decodeKeyValueMS(db)
 			},
-			expectedItems: map[string]memory.Item{},
+			expectedItems: map[string]memory.String{},
 			expectedErr:   true,
 		},
 		{
@@ -309,7 +309,7 @@ func TestDecodeKeyValueFunctions(t *testing.T) {
 			runTest: func(dec *decoder, db *database) error {
 				return dec.decodeKeyValueS(db)
 			},
-			expectedItems: map[string]memory.Item{
+			expectedItems: map[string]memory.String{
 				"key": {Value: "val", Expires: time.Unix(1000, 0)},
 			},
 			expectedErr: false,
@@ -320,14 +320,14 @@ func TestDecodeKeyValueFunctions(t *testing.T) {
 			runTest: func(dec *decoder, db *database) error {
 				return dec.decodeKeyValueS(db)
 			},
-			expectedItems: map[string]memory.Item{},
+			expectedItems: map[string]memory.String{},
 			expectedErr:   true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			db := &database{items: make(map[string]memory.Item)}
+			db := &database{items: make(map[string]memory.String)}
 			dec := &decoder{b: test.buffer, pos: 0, len: len(test.buffer)}
 			err := test.runTest(dec, db)
 			if test.expectedErr {
