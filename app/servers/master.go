@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
 	"github.com/codecrafters-io/redis-starter-go/app/config"
@@ -15,15 +16,20 @@ import (
 
 type master struct {
 	*base
-	replicas map[string]net.Conn
+	replicas           map[string]net.Conn
+	acks               chan replication.Ack
+	hasPendingWrites   bool
+	pendingWritesMutex sync.Mutex
 }
 
 var _ replication.Master = (*master)(nil)
 
 func newMaster(args *config.Args) *master {
 	m := &master{
-		base:     newBase(args),
-		replicas: make(map[string]net.Conn),
+		base:             newBase(args),
+		replicas:         make(map[string]net.Conn),
+		acks:             make(chan replication.Ack, 10),
+		hasPendingWrites: false,
 	}
 	m.commandController = commands.NewController(m.storage, m.args, m)
 	m.replicationInfo = m.initReplicationInfo()
@@ -37,14 +43,29 @@ func (m *master) Start() {
 }
 
 func (m *master) Propagate(args []string) {
+	var wg sync.WaitGroup
+
 	command := resp.CreateBulkStringArray(args...)
 	for addr, conn := range m.replicas {
-		err := m.commandController.Write(command, conn)
-		if err != nil {
-			log.Printf("Desynchronization with %s (but continue to work), propagate error: %v", addr, err)
-			continue
-		}
+		wg.Add(1)
+		go func(addr string, conn net.Conn) {
+			defer wg.Done()
+			m.propagateCommandToConn(command, addr, conn)
+		}(addr, conn)
 	}
+
+	wg.Wait()
+}
+
+func (m *master) GetAckCh() chan replication.Ack {
+	return m.acks
+}
+
+func (m *master) SendAck(addr string, offset int) {
+	if _, ok := m.replicas[addr]; !ok {
+		return
+	}
+	m.acks <- replication.Ack{Addr: addr, Offset: offset}
 }
 
 func (m *master) AddReplicaConn(addr string, replicaConn net.Conn) {
@@ -52,13 +73,14 @@ func (m *master) AddReplicaConn(addr string, replicaConn net.Conn) {
 	m.replicas[addr] = replicaConn
 }
 
-func (m *master) removeReplicaConn(addr string) {
-	log.Printf("Removed replica %s from replicas map", addr)
-	delete(m.replicas, addr)
-}
-
 func (m *master) GetReplicas() map[string]net.Conn {
 	return m.replicas
+}
+
+func (m *master) IsReplica(conn net.Conn) bool {
+	addr := conn.RemoteAddr().String()
+	_, ok := m.replicas[addr]
+	return ok
 }
 
 func (m *master) SendRDBFile(replicaConn net.Conn) {
@@ -74,6 +96,30 @@ func (m *master) SendRDBFile(replicaConn net.Conn) {
 	if err != nil {
 		log.Fatalf("SendRDBFile error: %v", err)
 	}
+}
+
+func (m *master) HasPendingWrites() bool {
+	m.pendingWritesMutex.Lock()
+	defer m.pendingWritesMutex.Unlock()
+	return m.hasPendingWrites
+}
+
+func (m *master) SetHasPendingWrites(val bool) {
+	m.pendingWritesMutex.Lock()
+	defer m.pendingWritesMutex.Unlock()
+	m.hasPendingWrites = val
+}
+
+func (m *master) propagateCommandToConn(command resp.Array, addr string, conn net.Conn) {
+	err := m.commandController.Write(command, conn)
+	if err != nil {
+		log.Printf("Desynchronization with %s (but continue to work), propagateWriteCommand error: %v", addr, err)
+	}
+}
+
+func (m *master) removeReplicaConn(addr string) {
+	log.Printf("Removed replica %s from replicas map", addr)
+	delete(m.replicas, addr)
 }
 
 func (m *master) acceptClientConnections() {

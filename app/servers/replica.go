@@ -22,7 +22,7 @@ type replica struct {
 	*base
 	masterConn         net.Conn
 	acceptClientsReady chan struct{}
-	wg                 sync.WaitGroup
+	connectionsWG      sync.WaitGroup
 	masterConnBuffer   []byte
 }
 
@@ -42,21 +42,21 @@ func newReplica(args *config.Args) *replica {
 func (r *replica) Start() {
 	r.initStorage()
 
-	r.wg.Add(1)
+	r.connectionsWG.Add(1)
 	go func() {
-		defer r.wg.Done()
+		defer r.connectionsWG.Done()
 		r.acceptClientConnections()
 	}()
 
 	<-r.acceptClientsReady
 
-	r.wg.Add(1)
+	r.connectionsWG.Add(1)
 	go func() {
-		defer r.wg.Done()
+		defer r.connectionsWG.Done()
 		r.connectToMaster()
 	}()
 
-	r.wg.Wait()
+	r.connectionsWG.Wait()
 }
 
 func (r *replica) GetMasterConn() net.Conn {
@@ -151,7 +151,7 @@ func (r *replica) processMasterHandshakePSYNC() {
 
 	simpleString, ok := psyncResult.(resp.SimpleString)
 	if !ok {
-		log.Fatalf("Master handshake PSYNC (3/3) psync response has wrong RESP type, expected: %T got %T", reflect.TypeOf(resp.SimpleString{}), simpleString)
+		log.Fatalf("Master handshake PSYNC (3/3) psync response has wrong RESP type, expected: %s, got %T", reflect.TypeOf(resp.SimpleString{}).String(), simpleString)
 	}
 	splitted := strings.Split(simpleString.Value, " ")
 	replID := splitted[1]

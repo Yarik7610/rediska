@@ -50,13 +50,8 @@ func (c *Controller) updateMasterReplOffset(cmd resp.Value, conn net.Conn) error
 	}
 	l := len(b)
 
-	switch r := c.replication.(type) {
-	case replication.Replica:
+	if r, ok := c.replication.(replication.Replica); ok {
 		if r.GetMasterConn() == conn {
-			c.replication.IncrMasterReplOffset(l)
-		}
-	case replication.Master:
-		if ok := isMastersBacklogBufferCommand(cmd); ok {
 			c.replication.IncrMasterReplOffset(l)
 		}
 	}
@@ -110,7 +105,7 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 	case "PSYNC":
 		return c.psync(args, conn)
 	case "WAIT":
-		return c.wait(args, conn)
+		return c.wait(args)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
@@ -125,8 +120,9 @@ func (c *Controller) handleSimpleStringCommand(cmd resp.SimpleString) resp.Value
 	}
 }
 
-func (c *Controller) propagate(commandAndArgs []string) {
+func (c *Controller) propagateWriteCommand(commandAndArgs []string) {
 	if m, ok := c.replication.(replication.Master); ok {
+		m.SetHasPendingWrites(true)
 		m.Propagate(commandAndArgs)
 	}
 }

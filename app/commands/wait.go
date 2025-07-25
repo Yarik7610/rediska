@@ -2,14 +2,14 @@ package commands
 
 import (
 	"fmt"
-	"net"
 	"strconv"
+	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) wait(args []string, conn net.Conn) resp.Value {
+func (c *Controller) wait(args []string) resp.Value {
 	if len(args) != 2 {
 		return resp.SimpleError{Value: "WAIT command error: only 2 more arguments supported"}
 	}
@@ -19,7 +19,7 @@ func (c *Controller) wait(args []string, conn net.Conn) resp.Value {
 		if err != nil {
 			return resp.SimpleError{Value: fmt.Sprintf("WAIT command number of replicas atoi error: %v", err)}
 		}
-		_, err = strconv.Atoi(args[1])
+		timeoutMS, err := strconv.Atoi(args[1])
 		if err != nil {
 			return resp.SimpleError{Value: fmt.Sprintf("WAIT command timeout (MS) atoi error: %v", err)}
 		}
@@ -28,16 +28,34 @@ func (c *Controller) wait(args []string, conn net.Conn) resp.Value {
 			return resp.Integer{Value: 0}
 		}
 
-		// timer := time.After(time.Millisecond * time.Duration(timeoutMS))
-		// select  {
-		// case timer<-:
+		replicas := m.GetReplicas()
+		if !m.HasPendingWrites() {
+			return resp.Integer{Value: len(replicas)}
+		}
 
-		// }
-		// case
-		// for _, replica := range m.GetReplicas() {
+		if numReplicas > len(replicas) {
+			numReplicas = len(replicas)
+		}
 
-		// }
-		return resp.Integer{Value: len(m.GetReplicas())}
+		m.Propagate([]string{"REPLCONF", "GETACK", "*"})
+
+		timer := time.After(time.Millisecond * time.Duration(timeoutMS))
+		ackedReplicas := make(map[string]bool)
+
+		for len(ackedReplicas) < numReplicas {
+			select {
+			case <-timer:
+				m.SetHasPendingWrites(false)
+				return resp.Integer{Value: len(ackedReplicas)}
+			case ack := <-m.GetAckCh():
+				if !ackedReplicas[ack.Addr] {
+					ackedReplicas[ack.Addr] = true
+				}
+			}
+		}
+
+		m.SetHasPendingWrites(false)
+		return resp.Integer{Value: len(ackedReplicas)}
 	}
 
 	return resp.SimpleError{Value: "WAIT cannot be used with replica instances"}

@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
@@ -28,28 +27,4 @@ func extractCommandAndArgs(commandAndArgs []resp.Value) ([]string, error) {
 	}
 
 	return result, nil
-}
-
-func isMastersBacklogBufferCommand(cmd resp.Value) bool {
-	switch v := cmd.(type) {
-	case resp.Array:
-		if len(v.Value) == 0 {
-			return false
-		}
-		cmdName, ok := v.Value[0].(resp.BulkString)
-		if !ok {
-			return false
-		}
-		uppercasedCmdName := strings.ToUpper(*cmdName.Value)
-		return isPropagatedCommand(uppercasedCmdName) || isSpecialCommand(uppercasedCmdName)
-	}
-	return false
-}
-
-func isPropagatedCommand(cmd string) bool {
-	return cmd == "SET"
-}
-
-func isSpecialCommand(cmd string) bool {
-	return cmd == "PING"
 }

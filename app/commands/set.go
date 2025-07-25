@@ -25,12 +25,12 @@ func (c *Controller) set(args, commandAndArgs []string) resp.Value {
 			return resp.SimpleError{Value: fmt.Sprintf("SET command get expiry error: %v", err)}
 		}
 		c.storage.SetWithExpiry(key, value, expiry)
-		go c.propagate(commandAndArgs)
+		go c.propagateWriteCommand(commandAndArgs)
 		return resp.SimpleString{Value: "OK"}
 	}
 
 	c.storage.Set(key, value)
-	go c.propagate(commandAndArgs)
+	go c.propagateWriteCommand(commandAndArgs)
 	return resp.SimpleString{Value: "OK"}
 }
 
