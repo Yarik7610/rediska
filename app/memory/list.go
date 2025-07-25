@@ -15,7 +15,7 @@ type DoubleLinkedList struct {
 }
 
 type ListStorage struct {
-	data  map[string]DoubleLinkedList
+	data  map[string]*DoubleLinkedList
 	rwMut sync.RWMutex
 }
 
@@ -28,7 +28,7 @@ func (ls *ListStorage) Lpush(key string, values ...string) int {
 	defer ls.rwMut.Unlock()
 
 	if _, ok := ls.data[key]; !ok {
-		ls.data[key] = DoubleLinkedList{}
+		ls.data[key] = &DoubleLinkedList{}
 	}
 
 	list := ls.data[key]
@@ -45,7 +45,7 @@ func (ls *ListStorage) Rpush(key string, values ...string) int {
 	defer ls.rwMut.Unlock()
 
 	if _, ok := ls.data[key]; !ok {
-		ls.data[key] = DoubleLinkedList{}
+		ls.data[key] = &DoubleLinkedList{}
 	}
 
 	list := ls.data[key]
