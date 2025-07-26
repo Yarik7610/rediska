@@ -18,3 +18,11 @@ func (s *Storage) GetKeys() []string {
 	allStorageKeys = append(allStorageKeys, s.ListStorage.GetKeys()...)
 	return allStorageKeys
 }
+
+func (s *Storage) Del(key string) {
+	if _, ok := s.StringStorage.Get(key); ok {
+		s.StringStorage.Del(key)
+	} else if _, ok := s.ListStorage.Get(key); ok {
+		s.ListStorage.Del(key)
+	}
+}

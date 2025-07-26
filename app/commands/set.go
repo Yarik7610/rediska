@@ -17,6 +17,11 @@ func (c *Controller) set(args, commandAndArgs []string) resp.Value {
 	key := args[0]
 	value := args[1]
 
+	_, ok := c.storage.ListStorage.Get(key)
+	if ok {
+		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
+	}
+
 	if len(args) > 2 {
 		expireMark := args[2]
 		expireValue := args[3]

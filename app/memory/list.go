@@ -20,7 +20,7 @@ type ListStorage struct {
 }
 
 func NewListStorage() *ListStorage {
-	return &ListStorage{}
+	return &ListStorage{data: make(map[string]*DoubleLinkedList)}
 }
 
 func (ls *ListStorage) Lpush(key string, values ...string) int {
@@ -117,6 +117,21 @@ func (ls *ListStorage) GetKeys() []string {
 	}
 
 	return keys
+}
+
+func (ls *ListStorage) Get(key string) (*DoubleLinkedList, bool) {
+	ls.rwMut.RLock()
+	defer ls.rwMut.RUnlock()
+
+	list, ok := ls.data[key]
+	return list, ok
+}
+
+func (ls *ListStorage) Del(key string) {
+	ls.rwMut.Lock()
+	defer ls.rwMut.Unlock()
+
+	delete(ls.data, key)
 }
 
 func (list *DoubleLinkedList) insertInTheStart(n *Node) {

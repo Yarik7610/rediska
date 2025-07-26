@@ -97,6 +97,13 @@ func (ss *StringStorage) SetWithExpiry(key, value string, expires time.Time) {
 	ss.data[key] = String{Value: value, Expires: expires}
 }
 
+func (ss *StringStorage) Del(key string) {
+	ss.rwMut.Lock()
+	defer ss.rwMut.Unlock()
+
+	delete(ss.data, key)
+}
+
 func (ss *StringStorage) CleanExpiredKeys() {
 	ss.rwMut.Lock()
 	defer ss.rwMut.Unlock()
