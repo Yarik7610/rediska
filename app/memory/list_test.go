@@ -210,6 +210,66 @@ func TestListStorageGetKeys(t *testing.T) {
 	})
 }
 
+func TestListStorageLlen(t *testing.T) {
+	ls := NewListStorage()
+	ls.data = make(map[string]*DoubleLinkedList)
+
+	t.Run("empty list", func(t *testing.T) {
+		assert.Equal(t, 0, ls.Llen("list"))
+	})
+
+	t.Run("concurrent list len", func(t *testing.T) {
+		const workers = 5
+		var wg sync.WaitGroup
+
+		wg.Add(workers)
+		for i := range workers {
+			go func(idx int) {
+				defer wg.Done()
+				ls.Lpush("list", "val")
+			}(i)
+		}
+		wg.Wait()
+		assert.Equal(t, workers, ls.Llen("list"))
+	})
+
+	t.Run("pop more than available", func(t *testing.T) {
+		ls.Rpush("list2", "a", "b")
+		popped := ls.Rpop("list2", 5)
+		assert.Equal(t, []string{"b", "a"}, popped)
+		assert.Equal(t, 0, ls.data["list2"].len)
+	})
+
+	t.Run("pop with count=0", func(t *testing.T) {
+		ls.Rpush("list3", "a")
+		popped := ls.Rpop("list3", 0)
+		assert.Empty(t, popped)
+		assert.Equal(t, 1, ls.data["list3"].len)
+	})
+
+	t.Run("concurrent pops", func(t *testing.T) {
+		const workers = 10
+		var wg sync.WaitGroup
+		key := "concurrent_rlist"
+
+		ls.Rpush(key, "a", "b", "c", "d", "e")
+
+		wg.Add(workers)
+		for range workers {
+			go func() {
+				defer wg.Done()
+				popped := ls.Rpop(key, 1)
+				if len(popped) > 0 {
+					assert.Contains(t, []string{"a", "b", "c", "d", "e"}, popped[0])
+				}
+			}()
+		}
+		wg.Wait()
+
+		assert.True(t, ls.data[key].len >= 0)
+	})
+}
+
 func TestListStorageGetKey(t *testing.T) {
 	ls := NewListStorage()
 	ls.data = make(map[string]*DoubleLinkedList)

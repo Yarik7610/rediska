@@ -116,6 +116,8 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.lpop(args, commandAndArgs)
 	case "RPOP":
 		return c.rpop(args, commandAndArgs)
+	case "LLEN":
+		return c.llen(args)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}

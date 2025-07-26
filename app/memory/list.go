@@ -107,6 +107,17 @@ func (ls *ListStorage) Lpop(key string, count int) []string {
 	return popped
 }
 
+func (ls *ListStorage) Llen(key string) int {
+	ls.rwMut.RLock()
+	defer ls.rwMut.RUnlock()
+
+	list, ok := ls.data[key]
+	if !ok {
+		return 0
+	}
+	return list.len
+}
+
 func (ls *ListStorage) GetKeys() []string {
 	ls.rwMut.RLock()
 	defer ls.rwMut.RUnlock()
