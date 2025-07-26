@@ -1,0 +1,32 @@
+package commands
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/codecrafters-io/redis-starter-go/app/resp"
+)
+
+func (c *Controller) rpop(args, commandAndArgs []string) resp.Value {
+	if len(args) < 1 {
+		return resp.SimpleError{Value: "RPOP command must have at least 1 arg"}
+	}
+
+	key := args[0]
+	if _, ok := c.storage.StringStorage.Get(key); ok {
+		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
+	}
+
+	count := 1
+	if len(args) > 1 {
+		var err error
+		count, err = strconv.Atoi(args[1])
+		if err != nil {
+			return resp.SimpleError{Value: fmt.Sprintf("RPOP command count argument atoi error: %v", err)}
+		}
+	}
+
+	poppedValues := c.storage.ListStorage.Rpop(key, count)
+	go c.propagateWriteCommand(commandAndArgs)
+	return resp.CreateBulkStringArray(poppedValues...)
+}
