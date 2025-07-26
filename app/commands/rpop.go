@@ -28,5 +28,9 @@ func (c *Controller) rpop(args, commandAndArgs []string) resp.Value {
 
 	poppedValues := c.storage.ListStorage.Rpop(key, count)
 	go c.propagateWriteCommand(commandAndArgs)
-	return resp.CreateBulkStringArray(poppedValues...)
+	if len(poppedValues) > 1 {
+		return resp.CreateBulkStringArray(poppedValues...)
+	} else {
+		return resp.BulkString{Value: &poppedValues[0]}
+	}
 }
