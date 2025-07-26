@@ -1,6 +1,8 @@
 package memory
 
-import "sync"
+import (
+	"sync"
+)
 
 type Node struct {
 	val  string
@@ -116,6 +118,58 @@ func (ls *ListStorage) Llen(key string) int {
 		return 0
 	}
 	return list.len
+}
+
+func (ls *ListStorage) Lrange(key string, startIdx, stopIdx int) []string {
+	ls.rwMut.RLock()
+	defer ls.rwMut.RUnlock()
+
+	values := make([]string, 0)
+
+	list, ok := ls.data[key]
+	if !ok {
+		return values
+	}
+
+	len := list.len
+
+	if startIdx < 0 {
+		startIdx += len
+		if startIdx < 0 {
+			startIdx = 0
+		}
+	}
+	if stopIdx < 0 {
+		stopIdx += len
+		if stopIdx >= len {
+			stopIdx = len - 1
+		}
+	}
+
+	if stopIdx < startIdx {
+		return values
+	}
+
+	if startIdx >= len {
+		return values
+	}
+	if stopIdx >= len {
+		stopIdx = len - 1
+	}
+
+	curNode := list.head
+
+	for range startIdx {
+		curNode = curNode.next
+	}
+	for range stopIdx - startIdx + 1 {
+		if curNode == nil {
+			break
+		}
+		values = append(values, curNode.val)
+		curNode = curNode.next
+	}
+	return values
 }
 
 func (ls *ListStorage) GetKeys() []string {

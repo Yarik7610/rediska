@@ -83,7 +83,7 @@ func (Array) Decode(b []byte) ([]byte, Value, error) {
 }
 
 func CreateBulkStringArray(args ...string) Array {
-	var values []Value
+	values := make([]Value, 0)
 	for _, arg := range args {
 		if arg == "" {
 			values = append(values, BulkString{Value: nil})

@@ -210,6 +210,67 @@ func TestListStorageGetKeys(t *testing.T) {
 	})
 }
 
+func TestListStorageLrange(t *testing.T) {
+	ls := NewListStorage()
+	ls.Rpush("mylist", "a", "b", "c", "d", "e")
+	t.Run("empty list", func(t *testing.T) {
+		assert.Empty(t, ls.Lrange("nonexistent", 0, 1))
+	})
+	t.Run("full range", func(t *testing.T) {
+		assert.Equal(t, []string{"a", "b", "c", "d", "e"}, ls.Lrange("mylist", 0, 4))
+	})
+	t.Run("partial range", func(t *testing.T) {
+		assert.Equal(t, []string{"b", "c", "d"}, ls.Lrange("mylist", 1, 3))
+	})
+	t.Run("single element", func(t *testing.T) {
+		assert.Equal(t, []string{"c"}, ls.Lrange("mylist", 2, 2))
+	})
+	t.Run("negative indices", func(t *testing.T) {
+		assert.Equal(t, []string{"d", "e"}, ls.Lrange("mylist", -2, -1))
+	})
+	t.Run("mixed indices", func(t *testing.T) {
+		assert.Equal(t, []string{"a", "b", "c"}, ls.Lrange("mylist", 0, -3))
+	})
+	t.Run("start exceeds length", func(t *testing.T) {
+		assert.Empty(t, ls.Lrange("mylist", 10, 15))
+	})
+	t.Run("stop exceeds length", func(t *testing.T) {
+		assert.Equal(t, []string{"d", "e"}, ls.Lrange("mylist", 3, 10))
+	})
+	t.Run("start > stop", func(t *testing.T) {
+		assert.Empty(t, ls.Lrange("mylist", 3, 1))
+	})
+	t.Run("all elements with negative indices", func(t *testing.T) {
+		assert.Equal(t, []string{"a", "b", "c", "d", "e"}, ls.Lrange("mylist", -5, -1))
+	})
+	t.Run("start negative beyond beginning", func(t *testing.T) {
+		assert.Equal(t, []string{"a", "b"}, ls.Lrange("mylist", -10, 1))
+	})
+	t.Run("concurrent lrange", func(t *testing.T) {
+		const workers = 5
+		var wg sync.WaitGroup
+		results := make([][]string, workers)
+
+		wg.Add(workers)
+		for i := range workers {
+			go func(idx int) {
+				defer wg.Done()
+				results[idx] = ls.Lrange("mylist", idx, idx+1)
+			}(i)
+		}
+		wg.Wait()
+
+		expected := [][]string{
+			{"a", "b"},
+			{"b", "c"},
+			{"c", "d"},
+			{"d", "e"},
+			{"e"},
+		}
+		assert.Equal(t, expected, results)
+	})
+}
+
 func TestListStorageLlen(t *testing.T) {
 	ls := NewListStorage()
 	ls.data = make(map[string]*DoubleLinkedList)

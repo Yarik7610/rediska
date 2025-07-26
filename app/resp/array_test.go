@@ -21,8 +21,14 @@ func TestArrayEncode(t *testing.T) {
 		},
 		{
 			Name:        "Nil Array",
-			In:          CreateBulkStringArray(),
+			In:          Array{Value: nil},
 			Expected:    []byte(NULL_ARRAY_RESP_2),
+			ShouldError: false,
+		},
+		{
+			Name:        "Empty Array",
+			In:          CreateBulkStringArray(),
+			Expected:    []byte("*0\r\n"),
 			ShouldError: false,
 		},
 		{
