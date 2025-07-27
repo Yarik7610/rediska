@@ -137,6 +137,6 @@ func (c *Controller) handleSimpleStringCommand(cmd resp.SimpleString) resp.Value
 func (c *Controller) propagateWriteCommand(commandAndArgs []string) {
 	if m, ok := c.replication.(replication.Master); ok {
 		m.SetHasPendingWrites(true)
-		m.Propagate(commandAndArgs)
+		go m.Propagate(commandAndArgs)
 	}
 }

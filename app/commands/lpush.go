@@ -17,6 +17,6 @@ func (c *Controller) lpush(args, commandAndArgs []string) resp.Value {
 	}
 
 	len := c.storage.ListStorage.Lpush(key, values...)
-	go c.propagateWriteCommand(commandAndArgs)
+	c.propagateWriteCommand(commandAndArgs)
 	return resp.Integer{Value: len}
 }

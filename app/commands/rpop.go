@@ -27,7 +27,7 @@ func (c *Controller) rpop(args, commandAndArgs []string) resp.Value {
 	}
 
 	poppedValues := c.storage.ListStorage.Rpop(key, count)
-	go c.propagateWriteCommand(commandAndArgs)
+	c.propagateWriteCommand(commandAndArgs)
 
 	switch len(poppedValues) {
 	case 0:

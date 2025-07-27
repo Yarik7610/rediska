@@ -26,10 +26,9 @@ var _ replication.Master = (*master)(nil)
 
 func newMaster(args *config.Args) *master {
 	m := &master{
-		base:             newBase(args),
-		replicas:         make(map[string]net.Conn),
-		acks:             make(chan replication.Ack, 10),
-		hasPendingWrites: false,
+		base:     newBase(args),
+		replicas: make(map[string]net.Conn),
+		acks:     make(chan replication.Ack, 10),
 	}
 	m.commandController = commands.NewController(m.storage, m.args, m)
 	m.replicationInfo = m.initReplicationInfo()
@@ -118,7 +117,9 @@ func (m *master) propagateCommandToConn(command resp.Array, addr string, conn ne
 }
 
 func (m *master) removeReplicaConn(addr string) {
-	log.Printf("Removed replica %s from replicas map", addr)
+	if _, ok := m.replicas[addr]; ok {
+		log.Printf("Removed replica %s from replicas map", addr)
+	}
 	delete(m.replicas, addr)
 }
 

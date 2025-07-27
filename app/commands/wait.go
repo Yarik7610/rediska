@@ -42,11 +42,11 @@ func (c *Controller) wait(args []string) resp.Value {
 		timer := time.After(time.Millisecond * time.Duration(timeoutMS))
 		ackedReplicas := make(map[string]bool)
 
+	loop:
 		for len(ackedReplicas) < numReplicas {
 			select {
 			case <-timer:
-				m.SetHasPendingWrites(false)
-				return resp.Integer{Value: len(ackedReplicas)}
+				break loop
 			case ack := <-m.GetAckCh():
 				if !ackedReplicas[ack.Addr] {
 					ackedReplicas[ack.Addr] = true
@@ -54,7 +54,15 @@ func (c *Controller) wait(args []string) resp.Value {
 			}
 		}
 
-		m.SetHasPendingWrites(false)
+		// If write commands are very slow, race condition can appear
+		// Thus, replica will send REPLCONF ACK ... faster, then replying to propagated command
+		// This will lead to a case where all ACKS are delivered but the replicas still work on propagated command
+		// Ideally, we need to wait on replica side and send REPLCONF ACK ... only when there are no more propagated write commands from master
+		// Or we need to compare that ack.offset >= master.MasterReplOffset and only than push ack to ackedReplicas
+		if len(ackedReplicas) == len(m.GetReplicas()) {
+			m.SetHasPendingWrites(false)
+		}
+
 		return resp.Integer{Value: len(ackedReplicas)}
 	}
 

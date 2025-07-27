@@ -9,6 +9,6 @@ func (c *Controller) del(args, commandAndArgs []string) resp.Value {
 		c.storage.Del(key)
 	}
 
-	go c.propagateWriteCommand(commandAndArgs)
+	c.propagateWriteCommand(commandAndArgs)
 	return resp.SimpleString{Value: "OK"}
 }

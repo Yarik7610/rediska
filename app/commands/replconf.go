@@ -50,6 +50,9 @@ func (c *Controller) replconf(args []string, conn net.Conn) resp.Value {
 				return resp.SimpleError{Value: "REPLCONF GETACK * can be send only by master"}
 			}
 
+			// No syncing with propagated write commands from master
+			// Ideally, we should wait here, until replica won't have any write commands from master in processing
+			// Or we need to compare that ack.offset >= master.MasterReplOffset and only than push ack to ackedReplicas (wait.go)
 			response := resp.CreateBulkStringArray("REPLCONF", "ACK", strconv.Itoa(rt.Info().MasterReplOffset))
 			if err := c.Write(response, conn); err != nil {
 				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF GETACK * write to master error: %v", err)}
