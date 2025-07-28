@@ -16,11 +16,11 @@ func (c *Controller) blpop(args, commandAndArgs []string) resp.Value {
 	if _, ok := c.storage.StringStorage.Get(key); ok {
 		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
 	}
-	timeoutMS, err := strconv.Atoi(args[1])
+	timeoutS, err := strconv.ParseFloat(args[1], 64)
 	if err != nil {
-		return resp.SimpleError{Value: fmt.Sprintf("BLPOP command timeout (MS) argument atoi error: %v", err)}
+		return resp.SimpleError{Value: fmt.Sprintf("BLPOP command timeout (S) argument parseFloat error: %v", err)}
 	}
-	poppedValue := c.storage.ListStorage.Blpop(key, timeoutMS)
+	poppedValue := c.storage.ListStorage.Blpop(key, timeoutS)
 
 	c.propagateWriteCommand(commandAndArgs)
 

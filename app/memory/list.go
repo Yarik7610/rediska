@@ -1,8 +1,8 @@
 package memory
 
 import (
-	"log"
 	"sync"
+	"time"
 )
 
 type Node struct {
@@ -90,22 +90,49 @@ func (ls *ListStorage) Rpop(key string, count int) []string {
 	return popped
 }
 
-func (ls *ListStorage) Blpop(key string, timeoutMS int) *string {
+func (ls *ListStorage) Blpop(key string, timeoutS float64) *string {
 	ls.rwMut.Lock()
-	defer ls.rwMut.Unlock()
 
-	if list, ok := ls.data[key]; !ok || list.len == 0 {
-		log.Println("WAITING")
-		ls.cond.Wait()
+	if list, ok := ls.data[key]; ok && list.len > 0 {
+		popped := list.deleteFromStart()
+		ls.rwMut.Unlock()
+		return &popped.val
 	}
 
-	list, ok := ls.data[key]
-	if !ok || list.len == 0 {
+	if timeoutS < 0 {
+		ls.rwMut.Unlock()
 		return nil
 	}
 
-	popped := list.deleteFromStart()
-	return &popped.val
+	if timeoutS == 0 {
+		for {
+			ls.cond.Wait()
+			if list, ok := ls.data[key]; ok && list.len > 0 {
+				popped := list.deleteFromStart()
+				ls.rwMut.Unlock()
+				return &popped.val
+			}
+		}
+	}
+
+	timer := time.After(time.Duration(timeoutS * float64(time.Second)))
+	for {
+		ls.rwMut.Unlock()
+
+		select {
+		case <-timer:
+			return nil
+		default:
+			time.Sleep(25 * time.Millisecond)
+		}
+
+		ls.rwMut.Lock()
+		if list, ok := ls.data[key]; ok && list.len > 0 {
+			popped := list.deleteFromStart()
+			ls.rwMut.Unlock()
+			return &popped.val
+		}
+	}
 }
 
 func (ls *ListStorage) Lpop(key string, count int) []string {
