@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"log"
 	"sync"
 )
 
@@ -19,10 +20,13 @@ type DoubleLinkedList struct {
 type ListStorage struct {
 	data  map[string]*DoubleLinkedList
 	rwMut sync.RWMutex
+	cond  *sync.Cond
 }
 
 func NewListStorage() *ListStorage {
-	return &ListStorage{data: make(map[string]*DoubleLinkedList)}
+	ls := &ListStorage{data: make(map[string]*DoubleLinkedList)}
+	ls.cond = sync.NewCond(&ls.rwMut)
+	return ls
 }
 
 func (ls *ListStorage) Lpush(key string, values ...string) int {
@@ -39,6 +43,7 @@ func (ls *ListStorage) Lpush(key string, values ...string) int {
 		n := &Node{val: val}
 		list.insertInTheStart(n)
 	}
+	ls.cond.Signal()
 	return list.len
 }
 
@@ -56,6 +61,7 @@ func (ls *ListStorage) Rpush(key string, values ...string) int {
 		n := &Node{val: val}
 		list.insertInTheEnd(n)
 	}
+	ls.cond.Signal()
 	return list.len
 }
 
@@ -82,6 +88,24 @@ func (ls *ListStorage) Rpop(key string, count int) []string {
 	}
 
 	return popped
+}
+
+func (ls *ListStorage) Blpop(key string, timeoutMS int) *string {
+	ls.rwMut.Lock()
+	defer ls.rwMut.Unlock()
+
+	if list, ok := ls.data[key]; !ok || list.len == 0 {
+		log.Println("WAITING")
+		ls.cond.Wait()
+	}
+
+	list, ok := ls.data[key]
+	if !ok || list.len == 0 {
+		return nil
+	}
+
+	popped := list.deleteFromStart()
+	return &popped.val
 }
 
 func (ls *ListStorage) Lpop(key string, count int) []string {

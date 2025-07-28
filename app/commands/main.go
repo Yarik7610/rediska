@@ -114,6 +114,8 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.lpush(args, commandAndArgs)
 	case "LPOP":
 		return c.lpop(args, commandAndArgs)
+	case "BLPOP":
+		return c.blpop(args, commandAndArgs)
 	case "RPOP":
 		return c.rpop(args, commandAndArgs)
 	case "LRANGE":
