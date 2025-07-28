@@ -118,6 +118,8 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.blpop(args, commandAndArgs)
 	case "RPOP":
 		return c.rpop(args, commandAndArgs)
+	case "BRPOP":
+		return c.brpop(args, commandAndArgs)
 	case "LRANGE":
 		return c.lrange(args)
 	case "LLEN":

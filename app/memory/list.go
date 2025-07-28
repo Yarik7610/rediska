@@ -65,6 +65,51 @@ func (ls *ListStorage) Rpush(key string, values ...string) int {
 	return list.len
 }
 
+func (ls *ListStorage) Brpop(key string, timeoutS float64) *string {
+	ls.rwMut.Lock()
+
+	if list, ok := ls.data[key]; ok && list.len > 0 {
+		popped := list.deleteFromEnd()
+		ls.rwMut.Unlock()
+		return &popped.val
+	}
+
+	if timeoutS < 0 {
+		ls.rwMut.Unlock()
+		return nil
+	}
+
+	if timeoutS == 0 {
+		for {
+			ls.cond.Wait()
+			if list, ok := ls.data[key]; ok && list.len > 0 {
+				popped := list.deleteFromEnd()
+				ls.rwMut.Unlock()
+				return &popped.val
+			}
+		}
+	}
+
+	timer := time.After(time.Duration(timeoutS * float64(time.Second)))
+	for {
+		ls.rwMut.Unlock()
+
+		select {
+		case <-timer:
+			return nil
+		default:
+			time.Sleep(25 * time.Millisecond)
+		}
+
+		ls.rwMut.Lock()
+		if list, ok := ls.data[key]; ok && list.len > 0 {
+			popped := list.deleteFromStart()
+			ls.rwMut.Unlock()
+			return &popped.val
+		}
+	}
+}
+
 func (ls *ListStorage) Rpop(key string, count int) []string {
 	ls.rwMut.Lock()
 	defer ls.rwMut.Unlock()
