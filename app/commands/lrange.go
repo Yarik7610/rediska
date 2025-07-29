@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
@@ -13,7 +14,7 @@ func (c *Controller) lrange(args []string) resp.Value {
 	}
 
 	key := args[0]
-	if _, ok := c.storage.StringStorage.Get(key); ok {
+	if c.storage.KeyExistsWithOtherType(key, memory.TYPE_LIST) {
 		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
 	}
 
@@ -29,6 +30,6 @@ func (c *Controller) lrange(args []string) resp.Value {
 		return resp.SimpleError{Value: fmt.Sprintf("LRANGE command stop atoi error: %v", err)}
 	}
 
-	values := c.storage.ListStorage.Lrange(key, startIdxAtoi, stopIdxAtoi)
+	values := c.storage.ListStorage().Lrange(key, startIdxAtoi, stopIdxAtoi)
 	return resp.CreateBulkStringArray(values...)
 }

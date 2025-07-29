@@ -10,18 +10,72 @@ type String struct {
 	Expires time.Time
 }
 
-type StringStorage struct {
+type StringStorage interface {
+	baseStorage
+	Has(key string) bool
+	Get(key string) (*String, bool)
+	Set(key, value string)
+	SetWithExpiry(key, value string, expires time.Time)
+	CleanExpiredKeys()
+	ItemExpired(item *String) bool
+	ItemHasExpiration(item *String) bool
+}
+
+type stringStorage struct {
 	data  map[string]String
 	rwMut sync.RWMutex
 }
 
-func NewStringStorage() *StringStorage {
-	return &StringStorage{
+var _ StringStorage = (*stringStorage)(nil)
+
+func NewStringStorage() *stringStorage {
+	return &stringStorage{
 		data: make(map[string]String, 0),
 	}
 }
 
-func (ss *StringStorage) Get(key string) (*String, bool) {
+func (ss *stringStorage) GetKeys() []string {
+	ss.rwMut.RLock()
+	var keys []string
+	var expiredKeys []string
+
+	for key, item := range ss.data {
+		if ss.ItemExpired(&item) {
+			expiredKeys = append(expiredKeys, key)
+		} else {
+			keys = append(keys, key)
+		}
+	}
+	ss.rwMut.RUnlock()
+
+	if len(expiredKeys) > 0 {
+		ss.rwMut.Lock()
+		for _, key := range expiredKeys {
+			// Repeat checking because of small non-blocking window between RUnlock() and Lock()
+			if item, ok := ss.data[key]; ok && ss.ItemExpired(&item) {
+				delete(ss.data, key)
+			}
+		}
+		ss.rwMut.Unlock()
+	}
+
+	return keys
+}
+
+func (ss *stringStorage) Has(key string) bool {
+	ss.rwMut.RLock()
+	defer ss.rwMut.RUnlock()
+	_, ok := ss.data[key]
+	return ok
+}
+
+func (ss *stringStorage) Del(key string) {
+	ss.rwMut.Lock()
+	defer ss.rwMut.Unlock()
+	delete(ss.data, key)
+}
+
+func (ss *stringStorage) Get(key string) (*String, bool) {
 	ss.rwMut.RLock()
 	item, ok := ss.data[key]
 	if !ok {
@@ -51,41 +105,13 @@ func (ss *StringStorage) Get(key string) (*String, bool) {
 	return &item, ok
 }
 
-func (ss *StringStorage) GetKeys() []string {
-	ss.rwMut.RLock()
-	var keys []string
-	var expiredKeys []string
-
-	for key, item := range ss.data {
-		if ss.ItemExpired(&item) {
-			expiredKeys = append(expiredKeys, key)
-		} else {
-			keys = append(keys, key)
-		}
-	}
-	ss.rwMut.RUnlock()
-
-	if len(expiredKeys) > 0 {
-		ss.rwMut.Lock()
-		for _, key := range expiredKeys {
-			// Repeat checking because of small non-blocking window between RUnlock() and Lock()
-			if item, ok := ss.data[key]; ok && ss.ItemExpired(&item) {
-				delete(ss.data, key)
-			}
-		}
-		ss.rwMut.Unlock()
-	}
-
-	return keys
-}
-
-func (ss *StringStorage) Set(key, value string) {
+func (ss *stringStorage) Set(key, value string) {
 	ss.rwMut.Lock()
 	defer ss.rwMut.Unlock()
 	ss.data[key] = String{Value: value}
 }
 
-func (ss *StringStorage) SetWithExpiry(key, value string, expires time.Time) {
+func (ss *stringStorage) SetWithExpiry(key, value string, expires time.Time) {
 	ss.rwMut.Lock()
 	defer ss.rwMut.Unlock()
 
@@ -97,14 +123,7 @@ func (ss *StringStorage) SetWithExpiry(key, value string, expires time.Time) {
 	ss.data[key] = String{Value: value, Expires: expires}
 }
 
-func (ss *StringStorage) Del(key string) {
-	ss.rwMut.Lock()
-	defer ss.rwMut.Unlock()
-
-	delete(ss.data, key)
-}
-
-func (ss *StringStorage) CleanExpiredKeys() {
+func (ss *stringStorage) CleanExpiredKeys() {
 	ss.rwMut.Lock()
 	defer ss.rwMut.Unlock()
 
@@ -115,10 +134,10 @@ func (ss *StringStorage) CleanExpiredKeys() {
 	}
 }
 
-func (ss *StringStorage) ItemExpired(item *String) bool {
+func (ss *stringStorage) ItemExpired(item *String) bool {
 	return ss.ItemHasExpiration(item) && item.Expires.Before(time.Now())
 }
 
-func (ss *StringStorage) ItemHasExpiration(item *String) bool {
+func (ss *stringStorage) ItemHasExpiration(item *String) bool {
 	return !item.Expires.IsZero()
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
@@ -13,7 +14,7 @@ func (c *Controller) rpop(args, commandAndArgs []string) resp.Value {
 	}
 
 	key := args[0]
-	if _, ok := c.storage.StringStorage.Get(key); ok {
+	if c.storage.KeyExistsWithOtherType(key, memory.TYPE_LIST) {
 		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
 	}
 
@@ -26,7 +27,7 @@ func (c *Controller) rpop(args, commandAndArgs []string) resp.Value {
 		}
 	}
 
-	poppedValues := c.storage.ListStorage.Rpop(key, count)
+	poppedValues := c.storage.ListStorage().Rpop(key, count)
 	c.propagateWriteCommand(commandAndArgs)
 
 	switch len(poppedValues) {

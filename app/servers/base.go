@@ -16,7 +16,7 @@ import (
 )
 
 type base struct {
-	storage           *memory.Storage
+	storage           *memory.MultiTypeStorage
 	respController    *resp.Controller
 	commandController *commands.Controller
 	args              *config.Args
@@ -27,7 +27,7 @@ var _ replication.Base = (*base)(nil)
 
 func newBase(args *config.Args) *base {
 	return &base{
-		storage:        memory.NewStorage(),
+		storage:        memory.NewMultiTypeStorage(),
 		respController: resp.NewController(),
 		args:           args,
 	}
@@ -86,12 +86,12 @@ func (base *base) processRDBFile(b []byte) {
 
 func (base *base) putRDBStringItemsIntoStorage(items map[string]memory.String) {
 	for key, item := range items {
-		if base.storage.StringStorage.ItemHasExpiration(&item) {
-			if !base.storage.StringStorage.ItemExpired(&item) {
-				base.storage.StringStorage.SetWithExpiry(key, item.Value, item.Expires)
+		if base.storage.StringStorage().ItemHasExpiration(&item) {
+			if !base.storage.StringStorage().ItemExpired(&item) {
+				base.storage.StringStorage().SetWithExpiry(key, item.Value, item.Expires)
 			}
 		} else {
-			base.storage.StringStorage.Set(key, item.Value)
+			base.storage.StringStorage().Set(key, item.Value)
 		}
 	}
 }
@@ -144,6 +144,6 @@ func (base *base) startExpiredStringKeysCleanup() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		base.storage.StringStorage.CleanExpiredKeys()
+		base.storage.StringStorage().CleanExpiredKeys()
 	}
 }

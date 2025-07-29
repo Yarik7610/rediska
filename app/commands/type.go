@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
@@ -11,12 +12,12 @@ func (c *Controller) valuetype(args []string) resp.Value {
 
 	key := args[0]
 
-	if _, ok := c.storage.StringStorage.Get(key); ok {
-		return resp.SimpleString{Value: "string"}
+	if c.storage.StringStorage().Has(key) {
+		return resp.SimpleString{Value: memory.TYPE_STRING}
 	}
-	if _, ok := c.storage.ListStorage.Get(key); ok {
-		return resp.SimpleString{Value: "list"}
+	if c.storage.ListStorage().Has(key) {
+		return resp.SimpleString{Value: memory.TYPE_LIST}
 	}
 
-	return resp.SimpleString{Value: "none"}
+	return resp.SimpleString{Value: memory.TYPE_NONE}
 }

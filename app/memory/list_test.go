@@ -315,7 +315,7 @@ func TestListStorageLlen(t *testing.T) {
 	ls.data = make(map[string]*DoubleLinkedList)
 
 	t.Run("empty list", func(t *testing.T) {
-		assert.Equal(t, 0, ls.Llen("list"))
+		assert.Equal(t, 0, ls.Llen(TYPE_LIST))
 	})
 
 	t.Run("concurrent list len", func(t *testing.T) {
@@ -326,11 +326,11 @@ func TestListStorageLlen(t *testing.T) {
 		for i := range workers {
 			go func(idx int) {
 				defer wg.Done()
-				ls.Lpush("list", "val")
+				ls.Lpush(TYPE_LIST, "val")
 			}(i)
 		}
 		wg.Wait()
-		assert.Equal(t, workers, ls.Llen("list"))
+		assert.Equal(t, workers, ls.Llen(TYPE_LIST))
 	})
 
 	t.Run("pop more than available", func(t *testing.T) {

@@ -12,12 +12,12 @@ import (
 )
 
 type Controller struct {
-	storage     *memory.Storage
+	storage     *memory.MultiTypeStorage
 	args        *config.Args
 	replication replication.Base
 }
 
-func NewController(storage *memory.Storage, args *config.Args, replication replication.Base) *Controller {
+func NewController(storage *memory.MultiTypeStorage, args *config.Args, replication replication.Base) *Controller {
 	return &Controller{storage: storage, args: args, replication: replication}
 }
 

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
@@ -10,13 +11,12 @@ func (c *Controller) rpush(args, commandAndArgs []string) resp.Value {
 	}
 
 	key := args[0]
-	values := args[1:]
-
-	if _, ok := c.storage.StringStorage.Get(key); ok {
+	if c.storage.KeyExistsWithOtherType(key, memory.TYPE_LIST) {
 		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
 	}
 
-	len := c.storage.ListStorage.Rpush(key, values...)
+	values := args[1:]
+	len := c.storage.ListStorage().Rpush(key, values...)
 	go c.propagateWriteCommand(commandAndArgs)
 	return resp.Integer{Value: len}
 }

@@ -17,19 +17,68 @@ type DoubleLinkedList struct {
 	len  int
 }
 
-type ListStorage struct {
+type ListStorage interface {
+	baseStorage
+	Has(key string) bool
+	Get(key string) (*DoubleLinkedList, bool)
+	Llen(key string) int
+	Lrange(key string, startIdx, stopIdx int) []string
+	Rpop(key string, count int) []string
+	Lpop(key string, count int) []string
+	Brpop(key string, timeoutS float64) *string
+	Blpop(key string, timeoutS float64) *string
+	Lpush(key string, values ...string) int
+	Rpush(key string, values ...string) int
+}
+
+var _ ListStorage = (*listStorage)(nil)
+
+type listStorage struct {
 	data  map[string]*DoubleLinkedList
 	rwMut sync.RWMutex
 	cond  *sync.Cond
 }
 
-func NewListStorage() *ListStorage {
-	ls := &ListStorage{data: make(map[string]*DoubleLinkedList)}
+func NewListStorage() *listStorage {
+	ls := &listStorage{data: make(map[string]*DoubleLinkedList)}
 	ls.cond = sync.NewCond(&ls.rwMut)
 	return ls
 }
 
-func (ls *ListStorage) Llen(key string) int {
+func (ls *listStorage) GetKeys() []string {
+	ls.rwMut.RLock()
+	defer ls.rwMut.RUnlock()
+
+	keys := make([]string, 0)
+	for key := range ls.data {
+		keys = append(keys, key)
+	}
+
+	return keys
+}
+
+func (ls *listStorage) Has(key string) bool {
+	ls.rwMut.RLock()
+	defer ls.rwMut.RUnlock()
+	_, ok := ls.data[key]
+	return ok
+}
+
+func (ls *listStorage) Del(key string) {
+	ls.rwMut.Lock()
+	defer ls.rwMut.Unlock()
+	delete(ls.data, key)
+}
+
+func (ls *listStorage) Get(key string) (*DoubleLinkedList, bool) {
+	ls.rwMut.RLock()
+	defer ls.rwMut.RUnlock()
+
+	list, ok := ls.data[key]
+	return list, ok
+}
+
+func (ls *listStorage) Llen(key string) int {
 	ls.rwMut.RLock()
 	defer ls.rwMut.RUnlock()
 
@@ -40,7 +89,7 @@ func (ls *ListStorage) Llen(key string) int {
 	return list.len
 }
 
-func (ls *ListStorage) Lrange(key string, startIdx, stopIdx int) []string {
+func (ls *listStorage) Lrange(key string, startIdx, stopIdx int) []string {
 	ls.rwMut.RLock()
 	defer ls.rwMut.RUnlock()
 
@@ -92,58 +141,31 @@ func (ls *ListStorage) Lrange(key string, startIdx, stopIdx int) []string {
 	return values
 }
 
-func (ls *ListStorage) GetKeys() []string {
-	ls.rwMut.RLock()
-	defer ls.rwMut.RUnlock()
-
-	keys := make([]string, 0)
-	for key := range ls.data {
-		keys = append(keys, key)
-	}
-
-	return keys
-}
-
-func (ls *ListStorage) Get(key string) (*DoubleLinkedList, bool) {
-	ls.rwMut.RLock()
-	defer ls.rwMut.RUnlock()
-
-	list, ok := ls.data[key]
-	return list, ok
-}
-
-func (ls *ListStorage) Del(key string) {
-	ls.rwMut.Lock()
-	defer ls.rwMut.Unlock()
-
-	delete(ls.data, key)
-}
-
-func (ls *ListStorage) Rpop(key string, count int) []string {
+func (ls *listStorage) Rpop(key string, count int) []string {
 	return ls.pop(key, count, deleteFromEnd)
 }
 
-func (ls *ListStorage) Lpop(key string, count int) []string {
+func (ls *listStorage) Lpop(key string, count int) []string {
 	return ls.pop(key, count, deleteFromStart)
 }
 
-func (ls *ListStorage) Brpop(key string, timeoutS float64) *string {
+func (ls *listStorage) Brpop(key string, timeoutS float64) *string {
 	return ls.bpop(key, timeoutS, deleteFromEnd)
 }
 
-func (ls *ListStorage) Blpop(key string, timeoutS float64) *string {
+func (ls *listStorage) Blpop(key string, timeoutS float64) *string {
 	return ls.bpop(key, timeoutS, deleteFromStart)
 }
 
-func (ls *ListStorage) Lpush(key string, values ...string) int {
+func (ls *listStorage) Lpush(key string, values ...string) int {
 	return ls.push(insertInTheStart, key, values...)
 }
 
-func (ls *ListStorage) Rpush(key string, values ...string) int {
+func (ls *listStorage) Rpush(key string, values ...string) int {
 	return ls.push(insertInTheEnd, key, values...)
 }
 
-func (ls *ListStorage) pop(key string, count int, popFn func(list *DoubleLinkedList) *Node) []string {
+func (ls *listStorage) pop(key string, count int, popFn func(list *DoubleLinkedList) *Node) []string {
 	ls.rwMut.Lock()
 	defer ls.rwMut.Unlock()
 
@@ -168,7 +190,7 @@ func (ls *ListStorage) pop(key string, count int, popFn func(list *DoubleLinkedL
 	return popped
 }
 
-func (ls *ListStorage) bpop(key string, timeoutS float64, popFn func(list *DoubleLinkedList) *Node) *string {
+func (ls *listStorage) bpop(key string, timeoutS float64, popFn func(list *DoubleLinkedList) *Node) *string {
 	ls.rwMut.Lock()
 
 	if list, ok := ls.data[key]; ok && list.len > 0 {
@@ -213,7 +235,7 @@ func (ls *ListStorage) bpop(key string, timeoutS float64, popFn func(list *Doubl
 	}
 }
 
-func (ls *ListStorage) push(pushFn func(list *DoubleLinkedList, n *Node), key string, values ...string) int {
+func (ls *listStorage) push(pushFn func(list *DoubleLinkedList, n *Node), key string, values ...string) int {
 	ls.rwMut.Lock()
 	defer ls.rwMut.Unlock()
 

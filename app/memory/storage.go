@@ -1,28 +1,61 @@
 package memory
 
-type Storage struct {
-	StringStorage *StringStorage
-	ListStorage   *ListStorage
+type baseStorage interface {
+	GetKeys() []string
+	Has(key string) bool
+	Del(key string)
 }
 
-func NewStorage() *Storage {
-	return &Storage{
-		StringStorage: NewStringStorage(),
-		ListStorage:   NewListStorage(),
+type MultiTypeStorage struct {
+	storages map[string]baseStorage
+}
+
+const (
+	TYPE_STRING = "string"
+	TYPE_LIST   = "list"
+	TYPE_NONE   = "none"
+)
+
+func NewMultiTypeStorage() *MultiTypeStorage {
+	return &MultiTypeStorage{
+		storages: map[string]baseStorage{
+			TYPE_STRING: NewStringStorage(),
+			TYPE_LIST:   NewListStorage(),
+		},
 	}
 }
 
-func (s *Storage) GetKeys() []string {
+func (s *MultiTypeStorage) GetKeys() []string {
 	allStorageKeys := make([]string, 0)
-	allStorageKeys = append(allStorageKeys, s.StringStorage.GetKeys()...)
-	allStorageKeys = append(allStorageKeys, s.ListStorage.GetKeys()...)
+	allStorageKeys = append(allStorageKeys, s.StringStorage().GetKeys()...)
+	allStorageKeys = append(allStorageKeys, s.ListStorage().GetKeys()...)
 	return allStorageKeys
 }
 
-func (s *Storage) Del(key string) {
-	if _, ok := s.StringStorage.Get(key); ok {
-		s.StringStorage.Del(key)
-	} else if _, ok := s.ListStorage.Get(key); ok {
-		s.ListStorage.Del(key)
+func (s *MultiTypeStorage) Del(key string) {
+	if s.StringStorage().Has(key) {
+		s.StringStorage().Del(key)
+	} else if s.ListStorage().Has(key) {
+		s.ListStorage().Del(key)
 	}
+}
+
+func (s *MultiTypeStorage) KeyExistsWithOtherType(key string, allowedType string) bool {
+	for storageKey, storage := range s.storages {
+		if storageKey == allowedType {
+			continue
+		}
+		if storage.Has(key) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *MultiTypeStorage) StringStorage() StringStorage {
+	return s.storages[TYPE_STRING].(StringStorage)
+}
+
+func (s *MultiTypeStorage) ListStorage() ListStorage {
+	return s.storages[TYPE_LIST].(ListStorage)
 }

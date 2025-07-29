@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
@@ -10,10 +11,10 @@ func (c *Controller) llen(args []string) resp.Value {
 	}
 
 	key := args[0]
-	if _, ok := c.storage.StringStorage.Get(key); ok {
+	if c.storage.KeyExistsWithOtherType(key, memory.TYPE_LIST) {
 		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
 	}
 
-	len := c.storage.ListStorage.Llen(key)
+	len := c.storage.ListStorage().Llen(key)
 	return resp.Integer{Value: len}
 }

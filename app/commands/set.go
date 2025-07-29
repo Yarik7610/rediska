@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
@@ -17,8 +18,7 @@ func (c *Controller) set(args, commandAndArgs []string) resp.Value {
 	key := args[0]
 	value := args[1]
 
-	_, ok := c.storage.ListStorage.Get(key)
-	if ok {
+	if c.storage.KeyExistsWithOtherType(key, memory.TYPE_STRING) {
 		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
 	}
 
@@ -29,12 +29,12 @@ func (c *Controller) set(args, commandAndArgs []string) resp.Value {
 		if err != nil {
 			return resp.SimpleError{Value: fmt.Sprintf("SET command get expiry error: %v", err)}
 		}
-		c.storage.StringStorage.SetWithExpiry(key, value, expiry)
+		c.storage.StringStorage().SetWithExpiry(key, value, expiry)
 		c.propagateWriteCommand(commandAndArgs)
 		return resp.SimpleString{Value: "OK"}
 	}
 
-	c.storage.StringStorage.Set(key, value)
+	c.storage.StringStorage().Set(key, value)
 	c.propagateWriteCommand(commandAndArgs)
 	return resp.SimpleString{Value: "OK"}
 }
