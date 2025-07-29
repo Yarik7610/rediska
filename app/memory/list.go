@@ -29,182 +29,6 @@ func NewListStorage() *ListStorage {
 	return ls
 }
 
-func (ls *ListStorage) Lpush(key string, values ...string) int {
-	ls.rwMut.Lock()
-	defer ls.rwMut.Unlock()
-
-	if _, ok := ls.data[key]; !ok {
-		ls.data[key] = &DoubleLinkedList{}
-	}
-
-	list := ls.data[key]
-
-	for _, val := range values {
-		n := &Node{val: val}
-		list.insertInTheStart(n)
-	}
-	ls.cond.Signal()
-	return list.len
-}
-
-func (ls *ListStorage) Rpush(key string, values ...string) int {
-	ls.rwMut.Lock()
-	defer ls.rwMut.Unlock()
-
-	if _, ok := ls.data[key]; !ok {
-		ls.data[key] = &DoubleLinkedList{}
-	}
-
-	list := ls.data[key]
-
-	for _, val := range values {
-		n := &Node{val: val}
-		list.insertInTheEnd(n)
-	}
-	ls.cond.Signal()
-	return list.len
-}
-
-func (ls *ListStorage) Brpop(key string, timeoutS float64) *string {
-	ls.rwMut.Lock()
-
-	if list, ok := ls.data[key]; ok && list.len > 0 {
-		popped := list.deleteFromEnd()
-		ls.rwMut.Unlock()
-		return &popped.val
-	}
-
-	if timeoutS < 0 {
-		ls.rwMut.Unlock()
-		return nil
-	}
-
-	if timeoutS == 0 {
-		for {
-			ls.cond.Wait()
-			if list, ok := ls.data[key]; ok && list.len > 0 {
-				popped := list.deleteFromEnd()
-				ls.rwMut.Unlock()
-				return &popped.val
-			}
-		}
-	}
-
-	timer := time.After(time.Duration(timeoutS * float64(time.Second)))
-	for {
-		ls.rwMut.Unlock()
-
-		select {
-		case <-timer:
-			return nil
-		default:
-			time.Sleep(25 * time.Millisecond)
-		}
-
-		ls.rwMut.Lock()
-		if list, ok := ls.data[key]; ok && list.len > 0 {
-			popped := list.deleteFromStart()
-			ls.rwMut.Unlock()
-			return &popped.val
-		}
-	}
-}
-
-func (ls *ListStorage) Rpop(key string, count int) []string {
-	ls.rwMut.Lock()
-	defer ls.rwMut.Unlock()
-
-	list, ok := ls.data[key]
-	if !ok {
-		return nil
-	}
-
-	if count > list.len {
-		count = list.len
-	}
-
-	popped := make([]string, 0)
-	for range count {
-		deleted := list.deleteFromEnd()
-		if deleted == nil {
-			break
-		}
-		popped = append(popped, deleted.val)
-	}
-
-	return popped
-}
-
-func (ls *ListStorage) Blpop(key string, timeoutS float64) *string {
-	ls.rwMut.Lock()
-
-	if list, ok := ls.data[key]; ok && list.len > 0 {
-		popped := list.deleteFromStart()
-		ls.rwMut.Unlock()
-		return &popped.val
-	}
-
-	if timeoutS < 0 {
-		ls.rwMut.Unlock()
-		return nil
-	}
-
-	if timeoutS == 0 {
-		for {
-			ls.cond.Wait()
-			if list, ok := ls.data[key]; ok && list.len > 0 {
-				popped := list.deleteFromStart()
-				ls.rwMut.Unlock()
-				return &popped.val
-			}
-		}
-	}
-
-	timer := time.After(time.Duration(timeoutS * float64(time.Second)))
-	for {
-		ls.rwMut.Unlock()
-
-		select {
-		case <-timer:
-			return nil
-		default:
-			time.Sleep(25 * time.Millisecond)
-		}
-
-		ls.rwMut.Lock()
-		if list, ok := ls.data[key]; ok && list.len > 0 {
-			popped := list.deleteFromStart()
-			ls.rwMut.Unlock()
-			return &popped.val
-		}
-	}
-}
-
-func (ls *ListStorage) Lpop(key string, count int) []string {
-	ls.rwMut.Lock()
-	defer ls.rwMut.Unlock()
-
-	list, ok := ls.data[key]
-	if !ok {
-		return nil
-	}
-
-	if count > list.len {
-		count = list.len
-	}
-
-	popped := make([]string, 0)
-	for range count {
-		deleted := list.deleteFromStart()
-		if deleted == nil {
-			break
-		}
-		popped = append(popped, deleted.val)
-	}
-
-	return popped
-}
-
 func (ls *ListStorage) Llen(key string) int {
 	ls.rwMut.RLock()
 	defer ls.rwMut.RUnlock()
@@ -295,7 +119,119 @@ func (ls *ListStorage) Del(key string) {
 	delete(ls.data, key)
 }
 
-func (list *DoubleLinkedList) insertInTheStart(n *Node) {
+func (ls *ListStorage) Rpop(key string, count int) []string {
+	return ls.pop(key, count, deleteFromEnd)
+}
+
+func (ls *ListStorage) Lpop(key string, count int) []string {
+	return ls.pop(key, count, deleteFromStart)
+}
+
+func (ls *ListStorage) Brpop(key string, timeoutS float64) *string {
+	return ls.bpop(key, timeoutS, deleteFromEnd)
+}
+
+func (ls *ListStorage) Blpop(key string, timeoutS float64) *string {
+	return ls.bpop(key, timeoutS, deleteFromStart)
+}
+
+func (ls *ListStorage) Lpush(key string, values ...string) int {
+	return ls.push(insertInTheStart, key, values...)
+}
+
+func (ls *ListStorage) Rpush(key string, values ...string) int {
+	return ls.push(insertInTheEnd, key, values...)
+}
+
+func (ls *ListStorage) pop(key string, count int, popFn func(list *DoubleLinkedList) *Node) []string {
+	ls.rwMut.Lock()
+	defer ls.rwMut.Unlock()
+
+	list, ok := ls.data[key]
+	if !ok {
+		return nil
+	}
+
+	if count > list.len {
+		count = list.len
+	}
+
+	popped := make([]string, 0)
+	for range count {
+		deleted := popFn(list)
+		if deleted == nil {
+			break
+		}
+		popped = append(popped, deleted.val)
+	}
+
+	return popped
+}
+
+func (ls *ListStorage) bpop(key string, timeoutS float64, popFn func(list *DoubleLinkedList) *Node) *string {
+	ls.rwMut.Lock()
+
+	if list, ok := ls.data[key]; ok && list.len > 0 {
+		popped := popFn(list)
+		ls.rwMut.Unlock()
+		return &popped.val
+	}
+
+	if timeoutS < 0 {
+		ls.rwMut.Unlock()
+		return nil
+	}
+
+	if timeoutS == 0 {
+		for {
+			ls.cond.Wait()
+			if list, ok := ls.data[key]; ok && list.len > 0 {
+				popped := popFn(list)
+				ls.rwMut.Unlock()
+				return &popped.val
+			}
+		}
+	}
+
+	timer := time.After(time.Duration(timeoutS * float64(time.Second)))
+	for {
+		ls.rwMut.Unlock()
+
+		select {
+		case <-timer:
+			return nil
+		default:
+			time.Sleep(25 * time.Millisecond)
+		}
+
+		ls.rwMut.Lock()
+		if list, ok := ls.data[key]; ok && list.len > 0 {
+			popped := popFn(list)
+			ls.rwMut.Unlock()
+			return &popped.val
+		}
+	}
+}
+
+func (ls *ListStorage) push(pushFn func(list *DoubleLinkedList, n *Node), key string, values ...string) int {
+	ls.rwMut.Lock()
+	defer ls.rwMut.Unlock()
+
+	if _, ok := ls.data[key]; !ok {
+		ls.data[key] = &DoubleLinkedList{}
+	}
+
+	list := ls.data[key]
+
+	for _, val := range values {
+		n := &Node{val: val}
+		pushFn(list, n)
+	}
+	ls.cond.Signal()
+	return list.len
+}
+
+func insertInTheStart(list *DoubleLinkedList, n *Node) {
 	if list.head == nil {
 		list.head = n
 		list.tail = n
@@ -307,7 +243,7 @@ func (list *DoubleLinkedList) insertInTheStart(n *Node) {
 	list.len++
 }
 
-func (list *DoubleLinkedList) insertInTheEnd(n *Node) {
+func insertInTheEnd(list *DoubleLinkedList, n *Node) {
 	if list.tail == nil {
 		list.tail = n
 		list.head = n
@@ -319,7 +255,7 @@ func (list *DoubleLinkedList) insertInTheEnd(n *Node) {
 	list.len++
 }
 
-func (list *DoubleLinkedList) deleteFromStart() *Node {
+func deleteFromStart(list *DoubleLinkedList) *Node {
 	if list.head == nil {
 		return nil
 	}
@@ -337,7 +273,7 @@ func (list *DoubleLinkedList) deleteFromStart() *Node {
 	return deleted
 }
 
-func (list *DoubleLinkedList) deleteFromEnd() *Node {
+func deleteFromEnd(list *DoubleLinkedList) *Node {
 	if list.tail == nil {
 		return nil
 	}

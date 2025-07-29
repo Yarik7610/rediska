@@ -48,11 +48,9 @@ func Decode(b []byte) (map[string]memory.String, error) {
 	}
 	fmt.Println(end)
 
-	var items map[string]memory.String
+	var items map[string]memory.String = nil
 	if len(databases) > 0 {
 		items = databases[0].items
-	} else {
-		items = nil
 	}
 	return items, nil
 }
