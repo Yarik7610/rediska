@@ -10,13 +10,13 @@ import (
 
 func TestListStorageDoubleLinkedList(t *testing.T) {
 	t.Run("insertInTheStart", func(t *testing.T) {
-		list := DoubleLinkedList{}
-		list.insertInTheStart(&Node{val: "a"})
+		list := &DoubleLinkedList{}
+		insertInTheStart(list, &Node{val: "a"})
 		assert.Equal(t, 1, list.len)
 		assert.Equal(t, "a", list.head.val)
 		assert.Equal(t, "a", list.tail.val)
 
-		list.insertInTheStart(&Node{val: "b"})
+		insertInTheStart(list, &Node{val: "b"})
 		assert.Equal(t, 2, list.len)
 		assert.Equal(t, "b", list.head.val)
 		assert.Equal(t, "a", list.tail.val)
@@ -25,13 +25,13 @@ func TestListStorageDoubleLinkedList(t *testing.T) {
 	})
 
 	t.Run("insertInTheEnd", func(t *testing.T) {
-		list := DoubleLinkedList{}
-		list.insertInTheEnd(&Node{val: "a"})
+		list := &DoubleLinkedList{}
+		insertInTheEnd(list, &Node{val: "a"})
 		assert.Equal(t, 1, list.len)
 		assert.Equal(t, "a", list.head.val)
 		assert.Equal(t, "a", list.tail.val)
 
-		list.insertInTheEnd(&Node{val: "b"})
+		insertInTheEnd(list, &Node{val: "b"})
 		assert.Equal(t, 2, list.len)
 		assert.Equal(t, "a", list.head.val)
 		assert.Equal(t, "b", list.tail.val)
@@ -40,19 +40,19 @@ func TestListStorageDoubleLinkedList(t *testing.T) {
 	})
 
 	t.Run("deleteFromStart", func(t *testing.T) {
-		list := DoubleLinkedList{}
-		assert.Nil(t, list.deleteFromStart())
+		list := &DoubleLinkedList{}
+		assert.Nil(t, deleteFromStart(list))
 
-		list.insertInTheStart(&Node{val: "a"})
-		deleted := list.deleteFromStart()
+		insertInTheStart(list, &Node{val: "a"})
+		deleted := deleteFromStart(list)
 		assert.Equal(t, "a", deleted.val)
 		assert.Equal(t, 0, list.len)
 		assert.Nil(t, list.head)
 		assert.Nil(t, list.tail)
 
-		list.insertInTheStart(&Node{val: "a"})
-		list.insertInTheStart(&Node{val: "b"})
-		deleted = list.deleteFromStart()
+		insertInTheStart(list, &Node{val: "a"})
+		insertInTheStart(list, &Node{val: "b"})
+		deleted = deleteFromStart(list)
 		assert.Equal(t, "b", deleted.val)
 		assert.Equal(t, 1, list.len)
 		assert.Equal(t, "a", list.head.val)
@@ -60,19 +60,19 @@ func TestListStorageDoubleLinkedList(t *testing.T) {
 	})
 
 	t.Run("deleteFromEnd", func(t *testing.T) {
-		list := DoubleLinkedList{}
-		assert.Nil(t, list.deleteFromEnd())
+		list := &DoubleLinkedList{}
+		assert.Nil(t, deleteFromEnd(list))
 
-		list.insertInTheEnd(&Node{val: "a"})
-		deleted := list.deleteFromEnd()
+		insertInTheEnd(list, &Node{val: "a"})
+		deleted := deleteFromEnd(list)
 		assert.Equal(t, "a", deleted.val)
 		assert.Equal(t, 0, list.len)
 		assert.Nil(t, list.head)
 		assert.Nil(t, list.tail)
 
-		list.insertInTheEnd(&Node{val: "a"})
-		list.insertInTheEnd(&Node{val: "b"})
-		deleted = list.deleteFromEnd()
+		insertInTheEnd(list, &Node{val: "a"})
+		insertInTheEnd(list, &Node{val: "b"})
+		deleted = deleteFromEnd(list)
 		assert.Equal(t, "b", deleted.val)
 		assert.Equal(t, 1, list.len)
 		assert.Equal(t, "a", list.tail.val)
