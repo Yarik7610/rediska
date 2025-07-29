@@ -14,6 +14,6 @@ func (c *Controller) keys(args []string) resp.Value {
 		return resp.SimpleError{Value: "KEYS command error: only '*' pattern supported"}
 	}
 
-	keys := c.storage.GetKeys()
+	keys := c.storage.Keys()
 	return resp.CreateBulkStringArray(keys...)
 }

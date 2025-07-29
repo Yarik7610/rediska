@@ -228,7 +228,7 @@ func TestListStorageGetKeys(t *testing.T) {
 	ls.data = make(map[string]*DoubleLinkedList)
 
 	t.Run("no keys", func(t *testing.T) {
-		assert.Empty(t, ls.GetKeys())
+		assert.Empty(t, ls.Keys())
 	})
 
 	t.Run("concurrent get keys", func(t *testing.T) {
@@ -241,7 +241,7 @@ func TestListStorageGetKeys(t *testing.T) {
 				defer wg.Done()
 				key := fmt.Sprintf("concurrent_key%d", idx)
 				ls.Lpush(key, "val")
-				keys := ls.GetKeys()
+				keys := ls.Keys()
 				assert.Contains(t, keys, key)
 			}(i)
 		}
@@ -370,35 +370,6 @@ func TestListStorageLlen(t *testing.T) {
 	})
 }
 
-func TestListStorageGetKey(t *testing.T) {
-	ls := NewListStorage()
-	ls.data = make(map[string]*DoubleLinkedList)
-
-	t.Run("no key", func(t *testing.T) {
-		list, ok := ls.Get("key1")
-		assert.Empty(t, list)
-		assert.False(t, ok)
-	})
-
-	t.Run("concurrent get", func(t *testing.T) {
-		const workers = 10
-		var wg sync.WaitGroup
-		key := "concurrent_get_key"
-		ls.Lpush(key, "a", "b", "c")
-
-		wg.Add(workers)
-		for range workers {
-			go func() {
-				defer wg.Done()
-				list, ok := ls.Get(key)
-				assert.True(t, ok)
-				assert.Equal(t, 3, list.len)
-			}()
-		}
-		wg.Wait()
-	})
-}
-
 func TestListStorageDelKey(t *testing.T) {
 	ls := NewListStorage()
 	ls.data = make(map[string]*DoubleLinkedList)
@@ -420,9 +391,8 @@ func TestListStorageDelKey(t *testing.T) {
 				key := fmt.Sprintf("del_key%d", idx)
 				ls.Lpush(key, "val")
 				ls.Del(key)
-				list, ok := ls.Get(key)
-				assert.Empty(t, list)
-				assert.False(t, ok)
+				values := ls.Lrange(key, 0, -1)
+				assert.Empty(t, values)
 			}(i)
 		}
 		wg.Wait()

@@ -19,8 +19,6 @@ type DoubleLinkedList struct {
 
 type ListStorage interface {
 	baseStorage
-	Has(key string) bool
-	Get(key string) (*DoubleLinkedList, bool)
 	Llen(key string) int
 	Lrange(key string, startIdx, stopIdx int) []string
 	Rpop(key string, count int) []string
@@ -45,7 +43,7 @@ func NewListStorage() *listStorage {
 	return ls
 }
 
-func (ls *listStorage) GetKeys() []string {
+func (ls *listStorage) Keys() []string {
 	ls.rwMut.RLock()
 	defer ls.rwMut.RUnlock()
 
@@ -68,14 +66,6 @@ func (ls *listStorage) Del(key string) {
 	ls.rwMut.Lock()
 	defer ls.rwMut.Unlock()
 	delete(ls.data, key)
-}
-
-func (ls *listStorage) Get(key string) (*DoubleLinkedList, bool) {
-	ls.rwMut.RLock()
-	defer ls.rwMut.RUnlock()
-
-	list, ok := ls.data[key]
-	return list, ok
 }
 
 func (ls *listStorage) Llen(key string) int {

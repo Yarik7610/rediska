@@ -1,7 +1,7 @@
 package memory
 
 type baseStorage interface {
-	GetKeys() []string
+	Keys() []string
 	Has(key string) bool
 	Del(key string)
 }
@@ -25,10 +25,10 @@ func NewMultiTypeStorage() *MultiTypeStorage {
 	}
 }
 
-func (s *MultiTypeStorage) GetKeys() []string {
+func (s *MultiTypeStorage) Keys() []string {
 	allStorageKeys := make([]string, 0)
-	allStorageKeys = append(allStorageKeys, s.StringStorage().GetKeys()...)
-	allStorageKeys = append(allStorageKeys, s.ListStorage().GetKeys()...)
+	allStorageKeys = append(allStorageKeys, s.StringStorage().Keys()...)
+	allStorageKeys = append(allStorageKeys, s.ListStorage().Keys()...)
 	return allStorageKeys
 }
 

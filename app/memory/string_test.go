@@ -74,14 +74,14 @@ func TestStringStorageGetKeys(t *testing.T) {
 	storage := NewStringStorage()
 
 	t.Run("empty storage", func(t *testing.T) {
-		keys := storage.GetKeys()
+		keys := storage.Keys()
 		assert.Empty(t, keys)
 	})
 
 	t.Run("with keys", func(t *testing.T) {
 		storage.Set("key1", "value1")
 		storage.SetWithExpiry("key2", "value2", time.Now().Add(100*time.Millisecond))
-		keys := storage.GetKeys()
+		keys := storage.Keys()
 		assert.Len(t, keys, 2)
 		assert.Contains(t, keys, "key1")
 		assert.Contains(t, keys, "key2")
@@ -90,7 +90,7 @@ func TestStringStorageGetKeys(t *testing.T) {
 	t.Run("after expiry", func(t *testing.T) {
 		storage.SetWithExpiry("key3", "value3", time.Now().Add(50*time.Millisecond))
 		time.Sleep(100 * time.Millisecond)
-		keys := storage.GetKeys()
+		keys := storage.Keys()
 		assert.NotContains(t, keys, "key3")
 	})
 }

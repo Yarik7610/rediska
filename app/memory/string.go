@@ -12,7 +12,6 @@ type String struct {
 
 type StringStorage interface {
 	baseStorage
-	Has(key string) bool
 	Get(key string) (*String, bool)
 	Set(key, value string)
 	SetWithExpiry(key, value string, expires time.Time)
@@ -34,7 +33,7 @@ func NewStringStorage() *stringStorage {
 	}
 }
 
-func (ss *stringStorage) GetKeys() []string {
+func (ss *stringStorage) Keys() []string {
 	ss.rwMut.RLock()
 	var keys []string
 	var expiredKeys []string
