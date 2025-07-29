@@ -33,6 +33,7 @@ func (m *metadata) String() string {
 }
 
 // No division on 2 maps: expired and unexpired
+// Supports only storage String values
 type database struct {
 	dbSelector              int
 	keysCount               int

@@ -124,6 +124,8 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.lrange(args)
 	case "LLEN":
 		return c.llen(args)
+	case "TYPE":
+		return c.valuetype(args)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
