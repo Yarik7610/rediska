@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -182,6 +183,44 @@ func TestListStorageRpop(t *testing.T) {
 
 		assert.True(t, ls.data[key].len >= 0)
 	})
+}
+
+func TestListStorageBlpopAndBrpop(t *testing.T) {
+	ls := NewListStorage()
+	key := "concurrent_bpop"
+	const workers = 10
+	var wg sync.WaitGroup
+
+	wg.Add(workers)
+	for i := range workers {
+		go func(idx int) {
+			defer wg.Done()
+			if idx%2 == 0 {
+				val := ls.Blpop(key, 0.5)
+				if val != nil {
+					t.Logf("Blpop got value: %s", *val)
+				}
+			} else {
+				val := ls.Brpop(key, 0.5)
+				if val != nil {
+					t.Logf("Brpop got value: %s", *val)
+				}
+			}
+		}(i)
+	}
+
+	go func() {
+		for i := range 5 {
+			time.Sleep(100 * time.Millisecond)
+			if i%2 == 0 {
+				ls.Lpush(key, fmt.Sprintf("value%d", i))
+			} else {
+				ls.Rpush(key, fmt.Sprintf("value%d", i))
+			}
+		}
+	}()
+
+	wg.Wait()
 }
 
 func TestListStorageGetKeys(t *testing.T) {
