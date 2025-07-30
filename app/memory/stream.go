@@ -30,6 +30,10 @@ func NewStreamStorage() *streamStorage {
 }
 
 func (ss *streamStorage) Xadd(streamKey string, requestedStreamID string, entryFields map[string]string) (string, error) {
+	if len(entryFields) == 0 {
+		return "", fmt.Errorf("entry with empty fields isn't allowed")
+	}
+
 	stream := ss.getOrCreateStream(streamKey)
 	stream.rwMut.Lock()
 	defer stream.rwMut.Unlock()
