@@ -126,6 +126,8 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.llen(args)
 	case "TYPE":
 		return c.valuetype(args)
+	case "XADD":
+		return c.xadd(args, commandAndArgs)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}

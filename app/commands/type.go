@@ -18,6 +18,9 @@ func (c *Controller) valuetype(args []string) resp.Value {
 	if c.storage.ListStorage().Has(key) {
 		return resp.SimpleString{Value: memory.TYPE_LIST}
 	}
+	if c.storage.StreamStorage().Has(key) {
+		return resp.SimpleString{Value: memory.TYPE_STREAM}
+	}
 
 	return resp.SimpleString{Value: memory.TYPE_NONE}
 }
