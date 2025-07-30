@@ -3,14 +3,20 @@ package memory
 import (
 	"fmt"
 	"maps"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 )
 
 type Entry map[string]string
 
 type Stream struct {
-	data  map[string]Entry
-	rwMut sync.RWMutex
+	data         map[string]Entry
+	lastStreamID string
+	lastMSTime   int64
+	lastSeqNum   int
+	rwMut        sync.RWMutex
 }
 
 type StreamStorage interface {
@@ -35,18 +41,67 @@ func (ss *streamStorage) Xadd(streamKey string, requestedStreamID string, entryF
 	}
 
 	stream := ss.getOrCreateStream(streamKey)
+
+	var msTime int64
+	var seqNum int
+	var streamID string
+
 	stream.rwMut.Lock()
 	defer stream.rwMut.Unlock()
 
-	if _, ok := stream.data[requestedStreamID]; ok {
+	if requestedStreamID == "*" {
+		streamID, msTime, seqNum = generateStreamID()
+	} else {
+		if requestedStreamID == "0-0" {
+			return "", fmt.Errorf("The ID specified in XADD must be greater than 0-0")
+		}
+		splitted := strings.Split(requestedStreamID, "-")
+		if len(splitted) != 2 {
+			return "", fmt.Errorf("detected wrong stream id format, need <millisecondsTime>-<sequenceNumber, got: %s", streamID)
+		}
+		rawSeqNum := splitted[1]
+		newMSTime, err := strconv.ParseInt(splitted[0], 10, 64)
+		if err != nil {
+			return "", fmt.Errorf("milliseconds time format int error: %v", err)
+		}
+		if newMSTime < stream.lastMSTime {
+			return "", fmt.Errorf("The ID specified in XADD is equal or smaller than the target stream top item")
+		}
+		msTime = newMSTime
+
+		if rawSeqNum == "*" {
+			if msTime == stream.lastMSTime {
+				seqNum = stream.lastSeqNum + 1
+			} else {
+				seqNum = 0
+			}
+		} else {
+			newSeqNum, err := strconv.Atoi(rawSeqNum)
+			if err != nil {
+				return "", fmt.Errorf("sequence number atoi error: %v", err)
+			}
+			if msTime == stream.lastMSTime && newSeqNum <= stream.lastSeqNum {
+				return "", fmt.Errorf("The ID specified in XADD is equal or smaller than the target stream top item")
+			}
+			seqNum = newSeqNum
+		}
+
+		streamID = fmt.Sprintf("%d-%d", newMSTime, seqNum)
+	}
+
+	if _, ok := stream.data[streamID]; ok {
 		return "", fmt.Errorf("entry with such stream ID already exists")
 	}
 
 	entry := make(Entry)
 	maps.Copy(entry, entryFields)
-	stream.data[requestedStreamID] = entry
 
-	return requestedStreamID, nil
+	stream.data[streamID] = entry
+	stream.lastMSTime = msTime
+	stream.lastSeqNum = seqNum
+	stream.lastStreamID = streamID
+
+	return streamID, nil
 }
 
 func (ss *streamStorage) Keys() []string {
@@ -114,4 +169,11 @@ func (s *Stream) getOrCreateEntry(streamID string) map[string]string {
 	entry := make(Entry)
 	s.data[streamID] = entry
 	return entry
+}
+
+func generateStreamID() (streamID string, msTime int64, seqNum int) {
+	seqNum = 0
+	msTime = time.Now().Local().UnixMilli()
+	streamID = fmt.Sprintf("%d-%d", msTime, seqNum)
+	return
 }

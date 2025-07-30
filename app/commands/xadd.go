@@ -30,7 +30,7 @@ func (c *Controller) xadd(args, commandAndArgs []string) resp.Value {
 
 	gotStreamID, err := c.storage.StreamStorage().Xadd(streamKey, requestedStreamID, entryFields)
 	if err != nil {
-		return resp.SimpleError{Value: fmt.Sprintf("XADD error: %s", err)}
+		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
 	}
 
 	c.propagateWriteCommand(commandAndArgs)
