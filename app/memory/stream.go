@@ -9,14 +9,18 @@ import (
 	"time"
 )
 
-type Entry map[string]string
+type entry map[string]string
 
-type Stream struct {
-	data         map[string]Entry
-	lastStreamID string
-	lastMSTime   int64
-	lastSeqNum   int
-	rwMut        sync.RWMutex
+type topEntry struct {
+	streamID string
+	msTime   int64
+	seqNum   int
+}
+
+type stream struct {
+	data     map[string]entry
+	topEntry topEntry
+	rwMut    sync.RWMutex
 }
 
 type StreamStorage interface {
@@ -25,14 +29,14 @@ type StreamStorage interface {
 }
 
 type streamStorage struct {
-	data  map[string]*Stream
+	data  map[string]*stream
 	rwMut sync.RWMutex
 }
 
 var _ StreamStorage = (*streamStorage)(nil)
 
 func NewStreamStorage() *streamStorage {
-	return &streamStorage{data: make(map[string]*Stream)}
+	return &streamStorage{data: make(map[string]*stream)}
 }
 
 func (ss *streamStorage) Xadd(streamKey string, requestedStreamID string, entryFields map[string]string) (string, error) {
@@ -41,67 +45,70 @@ func (ss *streamStorage) Xadd(streamKey string, requestedStreamID string, entryF
 	}
 
 	stream := ss.getOrCreateStream(streamKey)
-
-	var msTime int64
-	var seqNum int
-	var streamID string
-
 	stream.rwMut.Lock()
 	defer stream.rwMut.Unlock()
 
-	if requestedStreamID == "*" {
-		streamID, msTime, seqNum = generateStreamID()
-	} else {
-		if requestedStreamID == "0-0" {
-			return "", fmt.Errorf("The ID specified in XADD must be greater than 0-0")
-		}
-		splitted := strings.Split(requestedStreamID, "-")
-		if len(splitted) != 2 {
-			return "", fmt.Errorf("detected wrong stream id format, need <millisecondsTime>-<sequenceNumber, got: %s", streamID)
-		}
-		rawSeqNum := splitted[1]
-		newMSTime, err := strconv.ParseInt(splitted[0], 10, 64)
-		if err != nil {
-			return "", fmt.Errorf("milliseconds time format int error: %v", err)
-		}
-		if newMSTime < stream.lastMSTime {
-			return "", fmt.Errorf("The ID specified in XADD is equal or smaller than the target stream top item")
-		}
-		msTime = newMSTime
-
-		if rawSeqNum == "*" {
-			if msTime == stream.lastMSTime {
-				seqNum = stream.lastSeqNum + 1
-			} else {
-				seqNum = 0
-			}
-		} else {
-			newSeqNum, err := strconv.Atoi(rawSeqNum)
-			if err != nil {
-				return "", fmt.Errorf("sequence number atoi error: %v", err)
-			}
-			if msTime == stream.lastMSTime && newSeqNum <= stream.lastSeqNum {
-				return "", fmt.Errorf("The ID specified in XADD is equal or smaller than the target stream top item")
-			}
-			seqNum = newSeqNum
-		}
-
-		streamID = fmt.Sprintf("%d-%d", newMSTime, seqNum)
+	streamID, msTime, seqNum, err := validateAndGenerateStreamID(requestedStreamID, stream)
+	if err != nil {
+		return "", err
 	}
 
-	if _, ok := stream.data[streamID]; ok {
-		return "", fmt.Errorf("entry with such stream ID already exists")
-	}
-
-	entry := make(Entry)
+	entry := make(entry)
 	maps.Copy(entry, entryFields)
 
+	topEntry := topEntry{streamID: streamID, msTime: msTime, seqNum: seqNum}
 	stream.data[streamID] = entry
-	stream.lastMSTime = msTime
-	stream.lastSeqNum = seqNum
-	stream.lastStreamID = streamID
+	stream.topEntry = topEntry
 
 	return streamID, nil
+}
+
+func validateAndGenerateStreamID(requestedStreamID string, stream *stream) (string, int64, int, error) {
+	if requestedStreamID == "*" {
+		streamID, msTime, seqNum := generateStreamID()
+		return streamID, msTime, seqNum, nil
+	}
+
+	if requestedStreamID == "0-0" {
+		return "", 0, 0, fmt.Errorf("The ID specified in XADD must be greater than 0-0")
+	}
+
+	splitted := strings.Split(requestedStreamID, "-")
+	if len(splitted) != 2 {
+		return "", 0, 0, fmt.Errorf("detected wrong stream id format, need <millisecondsTime>-<sequenceNumber, got: %s", requestedStreamID)
+	}
+
+	rawMSTime := splitted[0]
+	rawSeqNum := splitted[1]
+
+	msTime, err := strconv.ParseInt(rawMSTime, 10, 64)
+	if err != nil {
+		return "", 0, 0, fmt.Errorf("milliseconds time format int error: %v", err)
+	}
+
+	if msTime < stream.topEntry.msTime {
+		return "", 0, 0, fmt.Errorf("The ID specified in XADD is equal or smaller than the target stream top item")
+	}
+
+	var seqNum int
+	if rawSeqNum == "*" {
+		if msTime == stream.topEntry.msTime {
+			seqNum = stream.topEntry.seqNum + 1
+		} else {
+			seqNum = 0
+		}
+	} else {
+		seqNum, err = strconv.Atoi(rawSeqNum)
+		if err != nil {
+			return "", 0, 0, fmt.Errorf("sequence number atoi error: %v", err)
+		}
+		if msTime == stream.topEntry.msTime && seqNum <= stream.topEntry.seqNum {
+			return "", 0, 0, fmt.Errorf("The ID specified in XADD is equal or smaller than the target stream top item")
+		}
+	}
+
+	streamID := fmt.Sprintf("%d-%d", msTime, seqNum)
+	return streamID, msTime, seqNum, nil
 }
 
 func (ss *streamStorage) Keys() []string {
@@ -129,7 +136,7 @@ func (ss *streamStorage) Del(key string) {
 	delete(ss.data, key)
 }
 
-func (ss *streamStorage) getOrCreateStream(streamKey string) *Stream {
+func (ss *streamStorage) getOrCreateStream(streamKey string) *stream {
 	ss.rwMut.RLock()
 	if stream, ok := ss.data[streamKey]; ok {
 		ss.rwMut.RUnlock()
@@ -145,30 +152,9 @@ func (ss *streamStorage) getOrCreateStream(streamKey string) *Stream {
 		return stream
 	}
 
-	stream := &Stream{data: make(map[string]Entry)}
+	stream := &stream{data: make(map[string]entry)}
 	ss.data[streamKey] = stream
 	return stream
-}
-
-func (s *Stream) getOrCreateEntry(streamID string) map[string]string {
-	s.rwMut.RLock()
-	if entry, ok := s.data[streamID]; ok {
-		s.rwMut.RUnlock()
-		return entry
-	}
-	s.rwMut.RUnlock()
-
-	s.rwMut.Lock()
-	defer s.rwMut.Unlock()
-
-	// Repeat checking because of small non-blocking window between RUnlock() and Lock()
-	if entry, ok := s.data[streamID]; ok {
-		return entry
-	}
-
-	entry := make(Entry)
-	s.data[streamID] = entry
-	return entry
 }
 
 func generateStreamID() (streamID string, msTime int64, seqNum int) {
