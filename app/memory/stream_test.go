@@ -125,7 +125,7 @@ func TestStreamStorageXrange(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, entries, 3)
 		assert.Equal(t, "1000-0", entries[0].StreamID)
-		assert.Equal(t, "value1", (*entries[0].Entry)["field1"])
+		assert.Equal(t, "value1", entries[0].Entry["field1"])
 		assert.Equal(t, "1000-1", entries[1].StreamID)
 		assert.Equal(t, "1001-0", entries[2].StreamID)
 	})

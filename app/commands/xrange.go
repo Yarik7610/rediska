@@ -24,22 +24,18 @@ func (c *Controller) xrange(args []string) resp.Value {
 		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
 	}
 
-	xrangeEntries := make([]resp.Value, 0)
-	for _, gotEntry := range gotEntries {
-		keyValues := extractKeyValuesToStringSlice(&gotEntry)
-		xrangeEntry := resp.Array{Value: []resp.Value{
-			resp.BulkString{Value: &gotEntry.StreamID},
-			resp.CreateBulkStringArray(keyValues...),
-		}}
-		xrangeEntries = append(xrangeEntries, xrangeEntry)
-	}
-	return resp.Array{Value: xrangeEntries}
+	return resp.Array{Value: getRESPEntriesWithStreamID(gotEntries)}
 }
 
-func extractKeyValuesToStringSlice(gotEntry *memory.XrangeEntry) []string {
-	keyValues := make([]string, 0)
-	for key, value := range *gotEntry.Entry {
-		keyValues = append(keyValues, key, value)
+func getRESPEntriesWithStreamID(entriesWithStreamID []memory.EntryWithStreamID) []resp.Value {
+	respEntriesWithStreamID := make([]resp.Value, 0)
+	for _, entryWithStreamID := range entriesWithStreamID {
+		keyValues := extractKeyValuesToStringSlice(entryWithStreamID.Entry)
+		entry := resp.Array{Value: []resp.Value{
+			resp.BulkString{Value: &entryWithStreamID.StreamID},
+			resp.CreateBulkStringArray(keyValues...),
+		}}
+		respEntriesWithStreamID = append(respEntriesWithStreamID, entry)
 	}
-	return keyValues
+	return respEntriesWithStreamID
 }

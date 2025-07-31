@@ -28,3 +28,11 @@ func extractCommandAndArgs(commandAndArgs []resp.Value) ([]string, error) {
 
 	return result, nil
 }
+
+func extractKeyValuesToStringSlice(m map[string]string) []string {
+	keyValues := make([]string, 0)
+	for key, value := range m {
+		keyValues = append(keyValues, key, value)
+	}
+	return keyValues
+}
