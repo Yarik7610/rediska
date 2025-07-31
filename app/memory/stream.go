@@ -76,11 +76,11 @@ func (ss *streamStorage) Xrange(streamKey string, startID string, endID string) 
 	stream.rwMut.RLock()
 	defer stream.rwMut.RUnlock()
 
-	_, startTimeMS, startSeqNum, err := validateAndParseRangeStreamID(startID, true)
+	_, startTimeMS, startSeqNum, err := validateAndParseRangeStreamID(startID, true, stream)
 	if err != nil {
 		return nil, fmt.Errorf("start ID validation failed: %v", err)
 	}
-	_, endTimeMS, endSeqNum, err := validateAndParseRangeStreamID(endID, false)
+	_, endTimeMS, endSeqNum, err := validateAndParseRangeStreamID(endID, false, stream)
 	if err != nil {
 		return nil, fmt.Errorf("start ID validation failed: %v", err)
 	}
@@ -209,7 +209,14 @@ func validateAndGenerateStreamID(requestedStreamID string, stream *stream) (stri
 	return streamID, timeMS, seqNum, nil
 }
 
-func validateAndParseRangeStreamID(rawStreamID string, isStart bool) (string, int64, int, error) {
+func validateAndParseRangeStreamID(rawStreamID string, isStart bool, stream *stream) (string, int64, int, error) {
+	if rawStreamID == "-" {
+		return "0-1", int64(0), 1, nil
+	}
+	if rawStreamID == "+" {
+		return stream.topEntry.streamID, stream.topEntry.timeMS, stream.topEntry.seqNum, nil
+	}
+
 	splitted := strings.Split(rawStreamID, "-")
 	switch len(splitted) {
 	case 1:
@@ -235,15 +242,4 @@ func validateAndParseRangeStreamID(rawStreamID string, isStart bool) (string, in
 	default:
 		return "", 0, 0, fmt.Errorf("wrong stream ID format provided")
 	}
-
-}
-
-func isStreamIDInRange(validStreamID string, startTimeMS, endTimeMS int64, startSeqNum, endSeqNum int) bool {
-	splitted := strings.Split(validStreamID, "-")
-	timeMS, _ := strconv.ParseInt(splitted[0], 10, 64)
-	seqNum, _ := strconv.Atoi(splitted[1])
-	if timeMS >= startTimeMS && timeMS <= endTimeMS && seqNum >= startSeqNum && seqNum <= endSeqNum {
-		return true
-	}
-	return false
 }
