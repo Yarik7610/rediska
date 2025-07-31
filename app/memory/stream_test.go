@@ -125,7 +125,7 @@ func TestStreamStorageXrange(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, entries, 3)
 		assert.Equal(t, "1000-0", entries[0].StreamID)
-		assert.Equal(t, "value1", (*entries[0].Entry)["field1"])
+		assert.Equal(t, "value1", entries[0].Entry["field1"])
 		assert.Equal(t, "1000-1", entries[1].StreamID)
 		assert.Equal(t, "1001-0", entries[2].StreamID)
 	})
@@ -187,6 +187,80 @@ func TestStreamStorageXrangeConcurrent(t *testing.T) {
 				entries, err := ss.Xrange("concurrentstream", "1000-0", "1000-9")
 				assert.NoError(t, err)
 				assert.Len(t, entries, 10)
+			}()
+		}
+		wg.Wait()
+	})
+}
+
+func TestStreamStorageXread(t *testing.T) {
+	ss := NewStreamStorage()
+
+	_, err := ss.Xadd("stream1", "1000-0", map[string]string{"field1": "value1"})
+	assert.NoError(t, err)
+	_, err = ss.Xadd("stream1", "1000-1", map[string]string{"field2": "value2"})
+	assert.NoError(t, err)
+	_, err = ss.Xadd("stream2", "2000-0", map[string]string{"field3": "value3"})
+	assert.NoError(t, err)
+
+	t.Run("read all from one stream", func(t *testing.T) {
+		result, err := ss.Xread([]string{"stream1"}, []string{"0-0"})
+		assert.NoError(t, err)
+		assert.Len(t, result, 1)
+		assert.Equal(t, "stream1", result[0].StreamKey)
+		assert.Len(t, result[0].EntriesWithStreamID, 2)
+		assert.Equal(t, "1000-0", result[0].EntriesWithStreamID[0].StreamID)
+		assert.Equal(t, "1000-1", result[0].EntriesWithStreamID[1].StreamID)
+	})
+
+	t.Run("read from multiple streams", func(t *testing.T) {
+		result, err := ss.Xread([]string{"stream1", "stream2"}, []string{"1000-1", "0-0"})
+		assert.NoError(t, err)
+		assert.Len(t, result, 2)
+
+		assert.Equal(t, "stream1", result[0].StreamKey)
+		assert.Len(t, result[0].EntriesWithStreamID, 0)
+
+		assert.Equal(t, "stream2", result[1].StreamKey)
+		assert.Len(t, result[1].EntriesWithStreamID, 1)
+		assert.Equal(t, "2000-0", result[1].EntriesWithStreamID[0].StreamID)
+	})
+
+	t.Run("read with non-existing start ID", func(t *testing.T) {
+		result, err := ss.Xread([]string{"stream1"}, []string{"9999-0"})
+		assert.NoError(t, err)
+		assert.Len(t, result, 1)
+		assert.Len(t, result[0].EntriesWithStreamID, 0)
+	})
+
+	t.Run("read from non-existing stream", func(t *testing.T) {
+		result, err := ss.Xread([]string{"nonexistent"}, []string{"0-0"})
+		assert.NoError(t, err)
+		assert.Len(t, result, 1)
+		assert.Len(t, result[0].EntriesWithStreamID, 0)
+	})
+}
+
+func TestStreamStorageXreadConcurrent(t *testing.T) {
+	ss := NewStreamStorage()
+	const workers = 10
+	var wg sync.WaitGroup
+
+	for i := range workers {
+		streamID := fmt.Sprintf("1000-%d", i)
+		_, err := ss.Xadd("concurrentstream", streamID, map[string]string{"value": fmt.Sprintf("%d", i)})
+		assert.NoError(t, err)
+	}
+
+	t.Run("concurrent reads", func(t *testing.T) {
+		wg.Add(workers)
+		for range workers {
+			go func() {
+				defer wg.Done()
+				result, err := ss.Xread([]string{"concurrentstream"}, []string{"1000-0"})
+				assert.NoError(t, err)
+				assert.Len(t, result, 1)
+				assert.Len(t, result[0].EntriesWithStreamID, workers-1)
 			}()
 		}
 		wg.Wait()

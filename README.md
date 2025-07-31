@@ -12,7 +12,7 @@ event loops, the Redis protocol and more.
 
 # Passing the first stage
 
-The entry point for your Redis implementation is in `app/main.go`. Study and
+The Entry point for your Redis implementation is in `app/main.go`. Study and
 uncomment the relevant code, and push your changes to pass the first stage:
 
 ```sh
