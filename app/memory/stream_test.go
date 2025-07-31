@@ -108,3 +108,87 @@ func TestStreamStorageXaddConcurrent(t *testing.T) {
 		assert.Equal(t, workers, len(ss.Keys()))
 	})
 }
+func TestStreamStorageXrange(t *testing.T) {
+	ss := NewStreamStorage()
+
+	_, err := ss.Xadd("rangestream", "1000-0", map[string]string{"field1": "value1"})
+	assert.NoError(t, err)
+	_, err = ss.Xadd("rangestream", "1000-1", map[string]string{"field2": "value2"})
+	assert.NoError(t, err)
+	_, err = ss.Xadd("rangestream", "1001-0", map[string]string{"field3": "value3"})
+	assert.NoError(t, err)
+	_, err = ss.Xadd("rangestream", "1002-0", map[string]string{"field4": "value4"})
+	assert.NoError(t, err)
+
+	t.Run("basic range", func(t *testing.T) {
+		entries, err := ss.Xrange("rangestream", "1000-0", "1001-0")
+		assert.NoError(t, err)
+		assert.Len(t, entries, 3)
+		assert.Equal(t, "1000-0", entries[0].StreamID)
+		assert.Equal(t, "value1", (*entries[0].Entry)["field1"])
+		assert.Equal(t, "1000-1", entries[1].StreamID)
+		assert.Equal(t, "1001-0", entries[2].StreamID)
+	})
+
+	t.Run("single entry range", func(t *testing.T) {
+		entries, err := ss.Xrange("rangestream", "1000-1", "1000-1")
+		assert.NoError(t, err)
+		assert.Len(t, entries, 1)
+		assert.Equal(t, "1000-1", entries[0].StreamID)
+	})
+
+	t.Run("full range with special IDs", func(t *testing.T) {
+		entries, err := ss.Xrange("rangestream", "-", "+")
+		assert.NoError(t, err)
+		assert.Len(t, entries, 4)
+		assert.Equal(t, "1000-0", entries[0].StreamID)
+		assert.Equal(t, "1002-0", entries[3].StreamID)
+	})
+
+	t.Run("non-existing entries in range", func(t *testing.T) {
+		entries, err := ss.Xrange("rangestream", "1005-0", "1010-0")
+		assert.NoError(t, err)
+		assert.Len(t, entries, 0)
+	})
+
+	t.Run("invalid start ID format", func(t *testing.T) {
+		_, err := ss.Xrange("rangestream", "invalid", "1001-0")
+		assert.Error(t, err)
+	})
+
+	t.Run("invalid end ID format", func(t *testing.T) {
+		_, err := ss.Xrange("rangestream", "1000-0", "invalid")
+		assert.Error(t, err)
+	})
+
+	t.Run("start after end", func(t *testing.T) {
+		entries, err := ss.Xrange("rangestream", "1001-0", "1000-0")
+		assert.NoError(t, err)
+		assert.Len(t, entries, 0)
+	})
+}
+
+func TestStreamStorageXrangeConcurrent(t *testing.T) {
+	ss := NewStreamStorage()
+	const workers = 10
+	var wg sync.WaitGroup
+
+	for i := range workers {
+		streamID := fmt.Sprintf("1000-%d", i)
+		_, err := ss.Xadd("concurrentstream", streamID, map[string]string{"value": fmt.Sprintf("%d", i)})
+		assert.NoError(t, err)
+	}
+
+	t.Run("concurrent reads", func(t *testing.T) {
+		wg.Add(workers)
+		for range workers {
+			go func() {
+				defer wg.Done()
+				entries, err := ss.Xrange("concurrentstream", "1000-0", "1000-9")
+				assert.NoError(t, err)
+				assert.Len(t, entries, 10)
+			}()
+		}
+		wg.Wait()
+	})
+}

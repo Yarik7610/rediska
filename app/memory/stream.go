@@ -2,7 +2,6 @@ package memory
 
 import (
 	"fmt"
-	"log"
 	"maps"
 	"math"
 	"strconv"
@@ -76,25 +75,24 @@ func (ss *streamStorage) Xrange(streamKey string, startID string, endID string) 
 	stream.rwMut.RLock()
 	defer stream.rwMut.RUnlock()
 
-	_, startTimeMS, startSeqNum, err := validateAndParseRangeStreamID(startID, true, stream)
+	startTimeMS, startSeqNum, err := validateAndParseRangeStreamID(startID, true, stream)
 	if err != nil {
 		return nil, fmt.Errorf("start ID validation failed: %v", err)
 	}
-	_, endTimeMS, endSeqNum, err := validateAndParseRangeStreamID(endID, false, stream)
+	endTimeMS, endSeqNum, err := validateAndParseRangeStreamID(endID, false, stream)
 	if err != nil {
 		return nil, fmt.Errorf("start ID validation failed: %v", err)
 	}
 
 	entries := make([]XrangeEntry, 0)
-
 	timeMS := startTimeMS
 	seqNum := startSeqNum
 
-	log.Println("START", timeMS, seqNum)
-	log.Println("END", endTimeMS, endSeqNum)
-	for timeMS <= endTimeMS && seqNum <= endSeqNum {
+	for timeMS <= endTimeMS {
+		if timeMS == endTimeMS && seqNum > endSeqNum {
+			break
+		}
 		streamID := fmt.Sprintf("%d-%d", timeMS, seqNum)
-		log.Println(streamID)
 		entry, ok := stream.data[streamID]
 		if !ok {
 			timeMS += 1
@@ -209,12 +207,12 @@ func validateAndGenerateStreamID(requestedStreamID string, stream *stream) (stri
 	return streamID, timeMS, seqNum, nil
 }
 
-func validateAndParseRangeStreamID(rawStreamID string, isStart bool, stream *stream) (string, int64, int, error) {
+func validateAndParseRangeStreamID(rawStreamID string, isStart bool, stream *stream) (int64, int, error) {
 	if rawStreamID == "-" {
-		return "0-1", int64(0), 1, nil
+		return int64(0), 1, nil
 	}
 	if rawStreamID == "+" {
-		return stream.topEntry.streamID, stream.topEntry.timeMS, stream.topEntry.seqNum, nil
+		return stream.topEntry.timeMS, stream.topEntry.seqNum, nil
 	}
 
 	splitted := strings.Split(rawStreamID, "-")
@@ -222,24 +220,24 @@ func validateAndParseRangeStreamID(rawStreamID string, isStart bool, stream *str
 	case 1:
 		timeMS, err := strconv.ParseInt(rawStreamID, 10, 64)
 		if err != nil {
-			return "", 0, 0, fmt.Errorf("milliseconds parse int error: %v", err)
+			return 0, 0, fmt.Errorf("milliseconds parse int error: %v", err)
 		}
 		if isStart {
-			return rawStreamID, timeMS, 0, nil
+			return timeMS, 0, nil
 		} else {
-			return rawStreamID, timeMS, math.MaxInt, nil
+			return timeMS, math.MaxInt, nil
 		}
 	case 2:
 		timeMS, err := strconv.ParseInt(splitted[0], 10, 64)
 		if err != nil {
-			return "", 0, 0, fmt.Errorf("milliseconds parse int error: %v", err)
+			return 0, 0, fmt.Errorf("milliseconds parse int error: %v", err)
 		}
 		seqNum, err := strconv.Atoi(splitted[1])
 		if err != nil {
-			return "", 0, 0, fmt.Errorf("sequence number atoi error: %v", err)
+			return 0, 0, fmt.Errorf("sequence number atoi error: %v", err)
 		}
-		return rawStreamID, timeMS, seqNum, nil
+		return timeMS, seqNum, nil
 	default:
-		return "", 0, 0, fmt.Errorf("wrong stream ID format provided")
+		return 0, 0, fmt.Errorf("wrong stream ID format provided")
 	}
 }
