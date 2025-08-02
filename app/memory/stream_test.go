@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -216,28 +217,23 @@ func TestStreamStorageXread(t *testing.T) {
 	t.Run("read from multiple streams", func(t *testing.T) {
 		result, err := ss.Xread([]string{"stream1", "stream2"}, []string{"1000-1", "0-0"}, -1)
 		assert.NoError(t, err)
-		assert.Len(t, result, 2)
+		assert.Len(t, result, 1)
 
-		assert.Equal(t, "stream1", result[0].StreamKey)
-		assert.Len(t, result[0].EntriesWithStreamID, 0)
-
-		assert.Equal(t, "stream2", result[1].StreamKey)
-		assert.Len(t, result[1].EntriesWithStreamID, 1)
-		assert.Equal(t, "2000-0", result[1].EntriesWithStreamID[0].StreamID)
+		assert.Equal(t, "stream2", result[0].StreamKey)
+		assert.Len(t, result[0].EntriesWithStreamID, 1)
+		assert.Equal(t, "2000-0", result[0].EntriesWithStreamID[0].StreamID)
 	})
 
 	t.Run("read with non-existing start ID", func(t *testing.T) {
 		result, err := ss.Xread([]string{"stream1"}, []string{"9999-0"}, -1)
 		assert.NoError(t, err)
-		assert.Len(t, result, 1)
-		assert.Len(t, result[0].EntriesWithStreamID, 0)
+		assert.Len(t, result, 0)
 	})
 
 	t.Run("read from non-existing stream", func(t *testing.T) {
 		result, err := ss.Xread([]string{"nonexistent"}, []string{"0-0"}, -1)
 		assert.NoError(t, err)
-		assert.Len(t, result, 1)
-		assert.Len(t, result[0].EntriesWithStreamID, 0)
+		assert.Len(t, result, 0)
 	})
 }
 
@@ -264,5 +260,117 @@ func TestStreamStorageXreadConcurrent(t *testing.T) {
 			}()
 		}
 		wg.Wait()
+	})
+}
+
+func TestStreamStorageXreadBlocking(t *testing.T) {
+	ss := NewStreamStorage()
+
+	t.Run("blocking read with immediate data", func(t *testing.T) {
+		_, err := ss.Xadd("blockstream1", "1000-0", map[string]string{"field1": "value1"})
+		assert.NoError(t, err)
+
+		result, err := ss.Xread([]string{"blockstream1"}, []string{"$"}, 100)
+		assert.NoError(t, err)
+		assert.Len(t, result, 0)
+
+		result, err = ss.Xread([]string{"blockstream1"}, []string{"0-0"}, 100)
+		assert.NoError(t, err)
+		assert.Len(t, result, 1)
+		assert.Len(t, result[0].EntriesWithStreamID, 1)
+	})
+
+	t.Run("blocking read with timeout", func(t *testing.T) {
+		start := time.Now()
+		result, err := ss.Xread([]string{"blockstream2"}, []string{"$"}, 100)
+		duration := time.Since(start)
+
+		assert.NoError(t, err)
+		assert.Len(t, result, 0)
+		assert.True(t, duration >= 100*time.Millisecond)
+	})
+
+	t.Run("blocking read with new data", func(t *testing.T) {
+		done := make(chan struct{})
+		var result []StreamWithEntries
+		var err error
+
+		go func() {
+			result, err = ss.Xread([]string{"blockstream3"}, []string{"$"}, 1000)
+			close(done)
+		}()
+
+		time.Sleep(50 * time.Millisecond)
+		_, xerr := ss.Xadd("blockstream3", "1000-0", map[string]string{"field1": "value1"})
+		assert.NoError(t, xerr)
+
+		<-done
+
+		assert.NoError(t, err)
+		assert.Len(t, result, 1)
+		assert.Len(t, result[0].EntriesWithStreamID, 1)
+		assert.Equal(t, "1000-0", result[0].EntriesWithStreamID[0].StreamID)
+	})
+
+	t.Run("multiple blocking reads", func(t *testing.T) {
+		const workers = 5
+		var wg sync.WaitGroup
+		results := make([][]StreamWithEntries, workers)
+		errs := make([]error, workers)
+
+		for i := range workers {
+			wg.Add(1)
+			go func(idx int) {
+				defer wg.Done()
+				results[idx], errs[idx] = ss.Xread([]string{"blockstream4"}, []string{"$"}, 1000)
+			}(i)
+		}
+
+		time.Sleep(50 * time.Millisecond)
+		_, err := ss.Xadd("blockstream4", "1000-0", map[string]string{"field1": "value1"})
+		assert.NoError(t, err)
+
+		wg.Wait()
+
+		for i := range workers {
+			assert.NoError(t, errs[i])
+			assert.Len(t, results[i], 1)
+			assert.Len(t, results[i][0].EntriesWithStreamID, 1)
+		}
+	})
+
+	t.Run("blocking read with multiple streams", func(t *testing.T) {
+		done := make(chan struct{})
+		var result []StreamWithEntries
+		var err error
+
+		_, xerr := ss.Xadd("blockstream5a", "1000-0", map[string]string{"field1": "value1"})
+		assert.NoError(t, xerr)
+
+		go func() {
+			result, err = ss.Xread(
+				[]string{"blockstream5a", "blockstream5b"},
+				[]string{"$", "$"},
+				1000,
+			)
+			close(done)
+		}()
+
+		time.Sleep(50 * time.Millisecond)
+		_, xerr = ss.Xadd("blockstream5b", "2000-0", map[string]string{"field2": "value2"})
+		assert.NoError(t, xerr)
+
+		<-done
+
+		assert.NoError(t, err)
+		assert.Len(t, result, 1)
+		assert.Equal(t, "blockstream5b", result[0].StreamKey)
+		assert.Len(t, result[0].EntriesWithStreamID, 1)
+		assert.Equal(t, "2000-0", result[0].EntriesWithStreamID[0].StreamID)
+	})
+
+	t.Run("blocking read with negative timeout", func(t *testing.T) {
+		_, err := ss.Xread([]string{"blockstream7"}, []string{"$"}, -2)
+		assert.Error(t, err)
 	})
 }
