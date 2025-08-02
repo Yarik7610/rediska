@@ -204,7 +204,7 @@ func TestStreamStorageXread(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("read all from one stream", func(t *testing.T) {
-		result, err := ss.Xread([]string{"stream1"}, []string{"0-0"})
+		result, err := ss.Xread([]string{"stream1"}, []string{"0-0"}, -1)
 		assert.NoError(t, err)
 		assert.Len(t, result, 1)
 		assert.Equal(t, "stream1", result[0].StreamKey)
@@ -214,7 +214,7 @@ func TestStreamStorageXread(t *testing.T) {
 	})
 
 	t.Run("read from multiple streams", func(t *testing.T) {
-		result, err := ss.Xread([]string{"stream1", "stream2"}, []string{"1000-1", "0-0"})
+		result, err := ss.Xread([]string{"stream1", "stream2"}, []string{"1000-1", "0-0"}, -1)
 		assert.NoError(t, err)
 		assert.Len(t, result, 2)
 
@@ -227,14 +227,14 @@ func TestStreamStorageXread(t *testing.T) {
 	})
 
 	t.Run("read with non-existing start ID", func(t *testing.T) {
-		result, err := ss.Xread([]string{"stream1"}, []string{"9999-0"})
+		result, err := ss.Xread([]string{"stream1"}, []string{"9999-0"}, -1)
 		assert.NoError(t, err)
 		assert.Len(t, result, 1)
 		assert.Len(t, result[0].EntriesWithStreamID, 0)
 	})
 
 	t.Run("read from non-existing stream", func(t *testing.T) {
-		result, err := ss.Xread([]string{"nonexistent"}, []string{"0-0"})
+		result, err := ss.Xread([]string{"nonexistent"}, []string{"0-0"}, -1)
 		assert.NoError(t, err)
 		assert.Len(t, result, 1)
 		assert.Len(t, result[0].EntriesWithStreamID, 0)
@@ -257,7 +257,7 @@ func TestStreamStorageXreadConcurrent(t *testing.T) {
 		for range workers {
 			go func() {
 				defer wg.Done()
-				result, err := ss.Xread([]string{"concurrentstream"}, []string{"1000-0"})
+				result, err := ss.Xread([]string{"concurrentstream"}, []string{"1000-0"}, -1)
 				assert.NoError(t, err)
 				assert.Len(t, result, 1)
 				assert.Len(t, result[0].EntriesWithStreamID, workers-1)
