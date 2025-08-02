@@ -80,11 +80,11 @@ func (ss *streamStorage) Xrange(streamKey string, startID string, endID string) 
 	stream.rwMut.RLock()
 	defer stream.rwMut.RUnlock()
 
-	startTimeMS, startSeqNum, err := stream.validateAndParseIntervalStreamID(startID, true)
+	startTimeMS, startSeqNum, err := stream.validateAndParseRangeIntervalStreamID(startID, true)
 	if err != nil {
 		return nil, fmt.Errorf("start ID validation failed: %v", err)
 	}
-	endTimeMS, endSeqNum, err := stream.validateAndParseIntervalStreamID(endID, false)
+	endTimeMS, endSeqNum, err := stream.validateAndParseRangeIntervalStreamID(endID, false)
 	if err != nil {
 		return nil, fmt.Errorf("end ID validation failed: %v", err)
 	}
@@ -102,7 +102,19 @@ func (ss *streamStorage) Xread(streamKeys []string, startIDs []string, timeoutMS
 		return nil, fmt.Errorf("negative timeout provided")
 	}
 
-	streamsWithEntries, err := ss.readStreamsSync(streamKeys, startIDs)
+	resolvedStartIDs := make([]string, len(startIDs))
+	for i, streamKey := range streamKeys {
+		stream := ss.getOrCreateStream(streamKey)
+		if startIDs[i] == "$" {
+			stream.rwMut.RLock()
+			resolvedStartIDs[i] = stream.topEntry.streamID
+			stream.rwMut.RUnlock()
+		} else {
+			resolvedStartIDs[i] = startIDs[i]
+		}
+	}
+
+	streamsWithEntries, err := ss.readStreamsSync(streamKeys, resolvedStartIDs)
 	if err != nil {
 		return nil, fmt.Errorf("readStreamsSync error: %s", err)
 	}
@@ -144,14 +156,14 @@ func (ss *streamStorage) Xread(streamKeys []string, startIDs []string, timeoutMS
 
 				stream.cond.Wait()
 			}
-		}(streamKey, startIDs[i])
+		}(streamKey, resolvedStartIDs[i])
 	}
 
 	select {
 	case err := <-streamError:
 		return nil, err
 	case <-receivedXadd:
-		streamsWithEntries, err := ss.readStreamsSync(streamKeys, startIDs)
+		streamsWithEntries, err := ss.readStreamsSync(streamKeys, resolvedStartIDs)
 		if err != nil {
 			return nil, fmt.Errorf("readStreamsSync error: %s", err)
 		}
@@ -202,7 +214,7 @@ func (ss *streamStorage) getOrCreateStream(streamKey string) *stream {
 		return stream
 	}
 
-	stream := &stream{data: make(map[string]entry)}
+	stream := &stream{data: make(map[string]entry), topEntry: initTopEntry()}
 	stream.cond = sync.NewCond(&stream.rwMut)
 	ss.data[streamKey] = stream
 	return stream
@@ -238,7 +250,7 @@ func (s *stream) read(startID string) ([]EntryWithStreamID, error) {
 	if err != nil {
 		return nil, fmt.Errorf("start ID validation failed: %v", err)
 	}
-	endTimeMS, endSeqNum, _ := s.validateAndParseIntervalStreamID("+", false)
+	endTimeMS, endSeqNum, _ := s.validateAndParseRangeIntervalStreamID("+", false)
 
 	return s.traverseEntries(startTimeMS, endTimeMS, startSeqNum, endSeqNum, true), nil
 }
@@ -317,14 +329,17 @@ func (s *stream) validateAndGenerateStreamID(requestedStreamID string) (string, 
 	return streamID, timeMS, seqNum, nil
 }
 
-func (s *stream) validateAndParseIntervalStreamID(rawStreamID string, isStart bool) (int64, int, error) {
+func (s *stream) validateAndParseRangeIntervalStreamID(rawStreamID string, isStart bool) (int64, int, error) {
 	if rawStreamID == "-" {
 		return int64(0), 1, nil
 	}
-	if rawStreamID == "+" || rawStreamID == "$" {
+	if rawStreamID == "+" {
 		return s.topEntry.timeMS, s.topEntry.seqNum, nil
 	}
+	return s.validateAndParseIntervalStreamID(rawStreamID, isStart)
+}
 
+func (s *stream) validateAndParseIntervalStreamID(rawStreamID string, isStart bool) (int64, int, error) {
 	splitted := strings.Split(rawStreamID, "-")
 	switch len(splitted) {
 	case 1:
@@ -357,4 +372,12 @@ func generateStreamID() (streamID string, timeMS int64, seqNum int) {
 	timeMS = time.Now().Local().UnixMilli()
 	streamID = fmt.Sprintf("%d-%d", timeMS, seqNum)
 	return
+}
+
+func initTopEntry() topEntry {
+	return topEntry{
+		streamID: "0-0",
+		timeMS:   0,
+		seqNum:   0,
+	}
 }
