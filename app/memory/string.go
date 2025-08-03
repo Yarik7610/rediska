@@ -25,9 +25,7 @@ type stringStorage struct {
 	rwMut sync.RWMutex
 }
 
-var _ StringStorage = (*stringStorage)(nil)
-
-func NewStringStorage() *stringStorage {
+func NewStringStorage() StringStorage {
 	return &stringStorage{
 		data: make(map[string]String, 0),
 	}

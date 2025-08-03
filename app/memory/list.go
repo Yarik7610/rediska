@@ -29,15 +29,13 @@ type ListStorage interface {
 	Rpush(key string, values ...string) int
 }
 
-var _ ListStorage = (*listStorage)(nil)
-
 type listStorage struct {
 	data  map[string]*DoubleLinkedList
 	rwMut sync.RWMutex
 	cond  *sync.Cond
 }
 
-func NewListStorage() *listStorage {
+func NewListStorage() ListStorage {
 	ls := &listStorage{data: make(map[string]*DoubleLinkedList)}
 	ls.cond = sync.NewCond(&ls.rwMut)
 	return ls

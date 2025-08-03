@@ -22,7 +22,7 @@ type base struct {
 	respController    *resp.Controller
 	commandController *commands.Controller
 	args              *config.Args
-	subscribers       *pubsub.Subscribers
+	subscribers       pubsub.Subscribers
 	replicationInfo   *replication.Info
 }
 

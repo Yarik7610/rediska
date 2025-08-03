@@ -14,12 +14,12 @@ import (
 
 type Controller struct {
 	storage     *memory.MultiTypeStorage
-	subscribers *pubsub.Subscribers
 	args        *config.Args
+	subscribers pubsub.Subscribers
 	replication replication.Base
 }
 
-func NewController(storage *memory.MultiTypeStorage, args *config.Args, subscirbers *pubsub.Subscribers, replication replication.Base) *Controller {
+func NewController(storage *memory.MultiTypeStorage, args *config.Args, subscirbers pubsub.Subscribers, replication replication.Base) *Controller {
 	return &Controller{
 		storage:     storage,
 		args:        args,

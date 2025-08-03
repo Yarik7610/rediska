@@ -38,9 +38,7 @@ type streamStorage struct {
 	rwMut sync.RWMutex
 }
 
-var _ StreamStorage = (*streamStorage)(nil)
-
-func NewStreamStorage() *streamStorage {
+func NewStreamStorage() StreamStorage {
 	return &streamStorage{data: make(map[string]*stream)}
 }
 

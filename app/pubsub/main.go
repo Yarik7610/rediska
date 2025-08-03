@@ -7,22 +7,27 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
-type Subscriber struct {
-	Conn         net.Conn
-	Ch           chan string
-	SubscribedTo map[string]bool
+type subscriber struct {
+	conn         net.Conn
+	ch           chan string
+	subscribedTo map[string]bool
 }
 
-type Subscribers struct {
-	channelSubs map[string][]*Subscriber
-	connSubs    map[string]*Subscriber
+type Subscribers interface {
+	Subscribe(conn net.Conn, channels ...string) []SubscribeResponse
+	UnsubscribeFromAllChannels(conn net.Conn)
+}
+
+type subscribers struct {
+	channelSubs map[string][]*subscriber
+	connSubs    map[string]*subscriber
 	rwMut       sync.RWMutex
 }
 
-func NewSubscribers() *Subscribers {
-	return &Subscribers{
-		channelSubs: make(map[string][]*Subscriber),
-		connSubs:    make(map[string]*Subscriber),
+func NewSubscribers() Subscribers {
+	return &subscribers{
+		channelSubs: make(map[string][]*subscriber),
+		connSubs:    make(map[string]*subscriber),
 	}
 }
 
@@ -31,7 +36,7 @@ type SubscribeResponse struct {
 	SubscribedToLen int
 }
 
-func (subs *Subscribers) Subscribe(conn net.Conn, channels ...string) []SubscribeResponse {
+func (subs *subscribers) Subscribe(conn net.Conn, channels ...string) []SubscribeResponse {
 	subscriber := subs.getOrCreateSubscriber(conn)
 
 	subs.rwMut.Lock()
@@ -39,19 +44,19 @@ func (subs *Subscribers) Subscribe(conn net.Conn, channels ...string) []Subscrib
 
 	response := make([]SubscribeResponse, 0)
 	for _, channel := range channels {
-		if !subscriber.SubscribedTo[channel] {
-			subscriber.SubscribedTo[channel] = true
+		if !subscriber.subscribedTo[channel] {
+			subscriber.subscribedTo[channel] = true
 			subs.channelSubs[channel] = append(subs.channelSubs[channel], subscriber)
 		}
 		response = append(response, SubscribeResponse{
 			Channel:         channel,
-			SubscribedToLen: len(subscriber.SubscribedTo),
+			SubscribedToLen: len(subscriber.subscribedTo),
 		})
 	}
 	return response
 }
 
-func (subs *Subscribers) UnsubscribeFromAllChannels(conn net.Conn) {
+func (subs *subscribers) UnsubscribeFromAllChannels(conn net.Conn) {
 	subscriber := subs.getSubscriber(conn)
 	if subscriber == nil {
 		return
@@ -60,11 +65,11 @@ func (subs *Subscribers) UnsubscribeFromAllChannels(conn net.Conn) {
 	subs.rwMut.Lock()
 	defer subs.rwMut.Unlock()
 
-	subscriberAddr := utils.GetRemoteAddr(subscriber.Conn)
+	subscriberAddr := utils.GetRemoteAddr(subscriber.conn)
 
-	for channel := range subscriber.SubscribedTo {
+	for channel := range subscriber.subscribedTo {
 		subs.channelSubs[channel] = subs.removeSubscriberFromChannelSubs(subscriber, channel)
-		delete(subscriber.SubscribedTo, channel)
+		delete(subscriber.subscribedTo, channel)
 
 		if len(subs.channelSubs[channel]) == 0 {
 			delete(subs.channelSubs, channel)
@@ -74,18 +79,18 @@ func (subs *Subscribers) UnsubscribeFromAllChannels(conn net.Conn) {
 	delete(subs.connSubs, subscriberAddr)
 }
 
-func (subs *Subscribers) removeSubscriberFromChannelSubs(subscriber *Subscriber, channel string) []*Subscriber {
+func (subs *subscribers) removeSubscriberFromChannelSubs(sub *subscriber, channel string) []*subscriber {
 	subsChan := subs.channelSubs[channel]
-	result := make([]*Subscriber, 0, len(subsChan)-1)
+	result := make([]*subscriber, 0, len(subsChan))
 	for _, s := range subsChan {
-		if s != subscriber {
+		if s != sub {
 			result = append(result, s)
 		}
 	}
 	return result
 }
 
-func (subs *Subscribers) getSubscriber(conn net.Conn) *Subscriber {
+func (subs *subscribers) getSubscriber(conn net.Conn) *subscriber {
 	subs.rwMut.RLock()
 	defer subs.rwMut.RUnlock()
 
@@ -96,7 +101,7 @@ func (subs *Subscribers) getSubscriber(conn net.Conn) *Subscriber {
 	return nil
 }
 
-func (subs *Subscribers) getOrCreateSubscriber(conn net.Conn) *Subscriber {
+func (subs *subscribers) getOrCreateSubscriber(conn net.Conn) *subscriber {
 	subs.rwMut.RLock()
 	addr := utils.GetRemoteAddr(conn)
 
@@ -113,10 +118,10 @@ func (subs *Subscribers) getOrCreateSubscriber(conn net.Conn) *Subscriber {
 		return s
 	}
 
-	s := &Subscriber{
-		Conn:         conn,
-		Ch:           make(chan string),
-		SubscribedTo: make(map[string]bool),
+	s := &subscriber{
+		conn:         conn,
+		ch:           make(chan string),
+		subscribedTo: make(map[string]bool),
 	}
 	subs.connSubs[addr] = s
 	return s

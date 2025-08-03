@@ -83,7 +83,6 @@ func TestListStorageDoubleLinkedList(t *testing.T) {
 
 func TestListStorageLpop(t *testing.T) {
 	ls := NewListStorage()
-	ls.data = make(map[string]*DoubleLinkedList)
 
 	t.Run("empty list", func(t *testing.T) {
 		assert.Nil(t, ls.Lpop("nonexistent", 1))
@@ -93,21 +92,21 @@ func TestListStorageLpop(t *testing.T) {
 		ls.Lpush("list1", "a")
 		popped := ls.Lpop("list1", 1)
 		assert.Equal(t, []string{"a"}, popped)
-		assert.Equal(t, 0, ls.data["list1"].len)
+		assert.Empty(t, ls.Lrange("list1", 0, -1))
 	})
 
 	t.Run("pop more than available", func(t *testing.T) {
 		ls.Lpush("list2", "a", "b")
 		popped := ls.Lpop("list2", 5)
 		assert.Equal(t, []string{"b", "a"}, popped)
-		assert.Equal(t, 0, ls.data["list2"].len)
+		assert.Empty(t, ls.Lrange("list2", 0, -1))
 	})
 
 	t.Run("pop with count=0", func(t *testing.T) {
 		ls.Lpush("list3", "a")
 		popped := ls.Lpop("list3", 0)
 		assert.Empty(t, popped)
-		assert.Equal(t, 1, ls.data["list3"].len)
+		assert.Equal(t, []string{"a"}, ls.Lrange("list3", 0, -1))
 	})
 
 	t.Run("concurrent pops", func(t *testing.T) {
@@ -129,13 +128,12 @@ func TestListStorageLpop(t *testing.T) {
 		}
 		wg.Wait()
 
-		assert.True(t, ls.data[key].len >= 0)
+		assert.Empty(t, ls.Lrange(key, 0, -1))
 	})
 }
 
 func TestListStorageRpop(t *testing.T) {
 	ls := NewListStorage()
-	ls.data = make(map[string]*DoubleLinkedList)
 
 	t.Run("empty list", func(t *testing.T) {
 		assert.Nil(t, ls.Rpop("nonexistent", 1))
@@ -145,21 +143,21 @@ func TestListStorageRpop(t *testing.T) {
 		ls.Rpush("list1", "a")
 		popped := ls.Rpop("list1", 1)
 		assert.Equal(t, []string{"a"}, popped)
-		assert.Equal(t, 0, ls.data["list1"].len)
+		assert.Empty(t, ls.Lrange("list1", 0, -1))
 	})
 
 	t.Run("pop more than available", func(t *testing.T) {
 		ls.Rpush("list2", "a", "b")
 		popped := ls.Rpop("list2", 5)
 		assert.Equal(t, []string{"b", "a"}, popped)
-		assert.Equal(t, 0, ls.data["list2"].len)
+		assert.Empty(t, ls.Lrange("list2", 0, -1))
 	})
 
 	t.Run("pop with count=0", func(t *testing.T) {
 		ls.Rpush("list3", "a")
 		popped := ls.Rpop("list3", 0)
 		assert.Empty(t, popped)
-		assert.Equal(t, 1, ls.data["list3"].len)
+		assert.NotEmpty(t, ls.Lrange("list3", 0, -1))
 	})
 
 	t.Run("concurrent pops", func(t *testing.T) {
@@ -181,7 +179,7 @@ func TestListStorageRpop(t *testing.T) {
 		}
 		wg.Wait()
 
-		assert.True(t, ls.data[key].len >= 0)
+		assert.Empty(t, ls.Lrange(key, 0, -1))
 	})
 }
 
@@ -225,7 +223,6 @@ func TestListStorageBlpopAndBrpop(t *testing.T) {
 
 func TestListStorageGetKeys(t *testing.T) {
 	ls := NewListStorage()
-	ls.data = make(map[string]*DoubleLinkedList)
 
 	t.Run("no keys", func(t *testing.T) {
 		assert.Empty(t, ls.Keys())
@@ -312,7 +309,6 @@ func TestListStorageLrange(t *testing.T) {
 
 func TestListStorageLlen(t *testing.T) {
 	ls := NewListStorage()
-	ls.data = make(map[string]*DoubleLinkedList)
 
 	t.Run("empty list", func(t *testing.T) {
 		assert.Equal(t, 0, ls.Llen(TYPE_LIST))
@@ -337,14 +333,14 @@ func TestListStorageLlen(t *testing.T) {
 		ls.Rpush("list2", "a", "b")
 		popped := ls.Rpop("list2", 5)
 		assert.Equal(t, []string{"b", "a"}, popped)
-		assert.Equal(t, 0, ls.data["list2"].len)
+		assert.Empty(t, ls.Lrange("list2", 0, -1))
 	})
 
 	t.Run("pop with count=0", func(t *testing.T) {
 		ls.Rpush("list3", "a")
 		popped := ls.Rpop("list3", 0)
 		assert.Empty(t, popped)
-		assert.Equal(t, 1, ls.data["list3"].len)
+		assert.NotEmpty(t, ls.Lrange("list3", 0, -1))
 	})
 
 	t.Run("concurrent pops", func(t *testing.T) {
@@ -366,18 +362,17 @@ func TestListStorageLlen(t *testing.T) {
 		}
 		wg.Wait()
 
-		assert.True(t, ls.data[key].len >= 0)
+		assert.Empty(t, ls.Lrange(key, 0, -1))
 	})
 }
 
 func TestListStorageDelKey(t *testing.T) {
 	ls := NewListStorage()
-	ls.data = make(map[string]*DoubleLinkedList)
 
 	t.Run("no key", func(t *testing.T) {
-		assert.Empty(t, ls.data)
+		assert.Empty(t, ls.Lrange("key1", 0, -1))
 		ls.Del("key1")
-		assert.Empty(t, ls.data)
+		assert.Empty(t, ls.Lrange("key1", 0, -1))
 	})
 
 	t.Run("concurrent delete", func(t *testing.T) {
