@@ -7,18 +7,25 @@ import (
 
 	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
+	"github.com/codecrafters-io/redis-starter-go/app/pubsub"
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
 type Controller struct {
 	storage     *memory.MultiTypeStorage
+	subscribers *pubsub.Subscribers
 	args        *config.Args
 	replication replication.Base
 }
 
-func NewController(storage *memory.MultiTypeStorage, args *config.Args, replication replication.Base) *Controller {
-	return &Controller{storage: storage, args: args, replication: replication}
+func NewController(storage *memory.MultiTypeStorage, args *config.Args, subscirbers *pubsub.Subscribers, replication replication.Base) *Controller {
+	return &Controller{
+		storage:     storage,
+		args:        args,
+		subscribers: subscirbers,
+		replication: replication,
+	}
 }
 
 func (c *Controller) HandleCommand(cmd resp.Value, conn net.Conn, writeResponseToConn bool) error {
@@ -132,6 +139,8 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.xrange(args)
 	case "XREAD":
 		return c.xread(args)
+	case "SUBSCRIBE":
+		return c.subscribe(args, conn)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}

@@ -11,8 +11,10 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/persistence/rdb"
+	"github.com/codecrafters-io/redis-starter-go/app/pubsub"
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
+	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
 type base struct {
@@ -20,6 +22,7 @@ type base struct {
 	respController    *resp.Controller
 	commandController *commands.Controller
 	args              *config.Args
+	subscribers       *pubsub.Subscribers
 	replicationInfo   *replication.Info
 }
 
@@ -30,6 +33,7 @@ func newBase(args *config.Args) *base {
 		storage:        memory.NewMultiTypeStorage(),
 		respController: resp.NewController(),
 		args:           args,
+		subscribers:    pubsub.NewSubscribers(),
 	}
 }
 
@@ -108,9 +112,10 @@ func (base *base) handleClient(initialBuffer []byte, conn net.Conn, writeRespons
 	for {
 		n, err := conn.Read(tmp)
 		if err != nil {
-			addr := conn.RemoteAddr().String()
+			addr := utils.GetRemoteAddr(conn)
 			if errors.Is(err, io.EOF) {
 				log.Printf("Connection %s closed: (EOF)", addr)
+				base.subscribers.UnsubscribeFromAllChannels(conn)
 				return
 			}
 			log.Printf("Connection %s read error: %v", addr, err)

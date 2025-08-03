@@ -8,6 +8,7 @@ import (
 
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
+	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
 func (c *Controller) replconf(args []string, conn net.Conn) resp.Value {
@@ -15,7 +16,7 @@ func (c *Controller) replconf(args []string, conn net.Conn) resp.Value {
 		return resp.SimpleError{Value: "REPLCONF command error: only 2 more arguments supported"}
 	}
 
-	addr := conn.RemoteAddr().String()
+	addr := utils.GetRemoteAddr(conn)
 
 	secondCommand := args[0]
 	arg := args[1]

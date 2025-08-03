@@ -12,6 +12,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/persistence/rdb"
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
+	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
 type master struct {
@@ -30,7 +31,7 @@ func newMaster(args *config.Args) *master {
 		replicas: make(map[string]net.Conn),
 		acks:     make(chan replication.Ack, 10),
 	}
-	m.commandController = commands.NewController(m.storage, m.args, m)
+	m.commandController = commands.NewController(m.storage, m.args, m.subscribers, m)
 	m.replicationInfo = m.initReplicationInfo()
 	return m
 }
@@ -77,7 +78,7 @@ func (m *master) GetReplicas() map[string]net.Conn {
 }
 
 func (m *master) IsReplica(conn net.Conn) bool {
-	addr := conn.RemoteAddr().String()
+	addr := utils.GetRemoteAddr(conn)
 	_, ok := m.replicas[addr]
 	return ok
 }
@@ -150,7 +151,7 @@ func (m *master) handleClientWithCleanup(initialBuffer []byte, conn net.Conn, wr
 }
 
 func (m *master) cleanUpConn(conn net.Conn) {
-	addr := conn.RemoteAddr().String()
+	addr := utils.GetRemoteAddr(conn)
 	m.removeReplicaConn(addr)
 }
 

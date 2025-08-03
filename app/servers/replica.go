@@ -34,7 +34,7 @@ func newReplica(args *config.Args) *replica {
 		acceptClientsReady: make(chan struct{}),
 		masterConnBuffer:   make([]byte, 0),
 	}
-	r.commandController = commands.NewController(r.storage, r.args, r)
+	r.commandController = commands.NewController(r.storage, r.args, r.subscribers, r)
 	r.replicationInfo = r.initReplicationInfo()
 	return r
 }
