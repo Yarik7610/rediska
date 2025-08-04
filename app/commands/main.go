@@ -88,6 +88,12 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 
 	command := commandAndArgs[0]
 	args := commandAndArgs[1:]
+
+	err = c.subscribers.HandleSubscribeModeCommand(command, conn)
+	if err != nil {
+		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
+	}
+
 	switch strings.ToUpper(command) {
 	case "PING":
 		return c.ping()
