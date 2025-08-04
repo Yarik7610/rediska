@@ -152,6 +152,8 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.xread(args)
 	case "SUBSCRIBE":
 		return c.subscribe(args, conn)
+	case "UNSUBSCRIBE":
+		return c.unsubscribe(args, conn)
 	case "PUBLISH":
 		return c.publish(args)
 	}

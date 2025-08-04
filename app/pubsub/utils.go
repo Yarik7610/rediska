@@ -8,6 +8,14 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
+func CreateRESPChannelAndLenResponse(action string, chanAndLen ChanAndLen) resp.Array {
+	return resp.Array{Value: []resp.Value{
+		resp.BulkString{Value: &action},
+		resp.BulkString{Value: &chanAndLen.Channel},
+		resp.Integer{Value: chanAndLen.SubscribedToLen},
+	}}
+}
+
 func writeMessageToSubscriber(channel, message string, sub *subscriber) error {
 	addr := utils.GetRemoteAddr(sub.conn)
 
@@ -24,7 +32,8 @@ func writeMessageToSubscriber(channel, message string, sub *subscriber) error {
 	return nil
 }
 
-func (c *controller) removeSubscriberFromChannelSubs(sub *subscriber, channel string) []*subscriber {
+func (c *controller) removeSubscriberFromChannel(sub *subscriber, channel string) []*subscriber {
+	delete(sub.subscribedTo, channel)
 	subsChan := c.channelSubs[channel]
 	result := make([]*subscriber, 0, len(subsChan))
 	for _, s := range subsChan {

@@ -15,21 +15,12 @@ func (c *controller) subscribe(args []string, conn net.Conn) resp.Value {
 	gotResponses := c.pubsubController.Subscribe(conn, args...)
 
 	if len(gotResponses) == 1 {
-		return createRESPSubscribeChannelResponse(gotResponses[0])
+		return pubsub.CreateRESPChannelAndLenResponse("subscribe", gotResponses[0])
 	}
 
 	multipleRESPSubs := make([]resp.Value, 0)
 	for _, gotResponse := range gotResponses {
-		multipleRESPSubs = append(multipleRESPSubs, createRESPSubscribeChannelResponse(gotResponse))
+		multipleRESPSubs = append(multipleRESPSubs, pubsub.CreateRESPChannelAndLenResponse("subscribe", gotResponse))
 	}
 	return resp.Array{Value: multipleRESPSubs}
-}
-
-func createRESPSubscribeChannelResponse(subscribeResponse pubsub.SubscribeResponse) resp.Array {
-	action := "subscribe"
-	return resp.Array{Value: []resp.Value{
-		resp.BulkString{Value: &action},
-		resp.BulkString{Value: &subscribeResponse.Channel},
-		resp.Integer{Value: subscribeResponse.SubscribedToLen},
-	}}
 }
