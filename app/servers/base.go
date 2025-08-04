@@ -18,12 +18,12 @@ import (
 )
 
 type base struct {
-	storage           *memory.MultiTypeStorage
 	args              *config.Args
-	respController    *resp.Controller
+	replicationInfo   *replication.Info
+	storage           *memory.MultiTypeStorage
+	respController    resp.Controller
 	commandController commands.Controller
 	pubsubController  pubsub.Controller
-	replicationInfo   *replication.Info
 }
 
 var _ replication.Base = (*base)(nil)

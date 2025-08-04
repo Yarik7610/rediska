@@ -26,9 +26,7 @@ type replica struct {
 	masterConnBuffer   []byte
 }
 
-var _ replication.Replica = (*replica)(nil)
-
-func newReplica(args *config.Args) *replica {
+func newReplica(args *config.Args) Server {
 	r := &replica{
 		base:               newBase(args),
 		acceptClientsReady: make(chan struct{}),

@@ -9,13 +9,17 @@ type Value interface {
 	Decode([]byte) ([]byte, Value, error)
 }
 
-type Controller struct{}
-
-func NewController() *Controller {
-	return &Controller{}
+type Controller interface {
+	Decode(b []byte) (rest []byte, value Value, err error)
 }
 
-func (*Controller) Decode(b []byte) (rest []byte, value Value, err error) {
+type controller struct{}
+
+func NewController() Controller {
+	return &controller{}
+}
+
+func (*controller) Decode(b []byte) (rest []byte, value Value, err error) {
 	l := len(b)
 	if l == 0 || b == nil {
 		return nil, nil, fmt.Errorf("expected non-empty data")

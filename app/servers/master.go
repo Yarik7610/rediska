@@ -23,9 +23,7 @@ type master struct {
 	pendingWritesMutex sync.Mutex
 }
 
-var _ replication.Master = (*master)(nil)
-
-func newMaster(args *config.Args) *master {
+func newMaster(args *config.Args) Server {
 	m := &master{
 		base:     newBase(args),
 		replicas: make(map[string]net.Conn),
