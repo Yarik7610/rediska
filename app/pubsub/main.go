@@ -40,7 +40,19 @@ type SubscribeResponse struct {
 }
 
 func (c *controller) Publish(channel, message string) int {
-	return 5
+	c.rwMut.Lock()
+	defer c.rwMut.Unlock()
+
+	channelSubs, ok := c.channelSubs[channel]
+	if !ok {
+		return 0
+	}
+
+	for range channelSubs {
+		// TODO publish message
+	}
+
+	return len(channelSubs)
 }
 
 func (c *controller) Subscribe(conn net.Conn, channels ...string) []SubscribeResponse {

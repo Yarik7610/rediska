@@ -1,12 +1,10 @@
 package commands
 
 import (
-	"net"
-
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *controller) publish(args []string, conn net.Conn) resp.Value {
+func (c *controller) publish(args []string) resp.Value {
 	if len(args) != 2 {
 		return resp.SimpleError{Value: "PUBLISH command must have 2 args"}
 	}
