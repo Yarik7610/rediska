@@ -8,7 +8,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) rpop(args, commandAndArgs []string) resp.Value {
+func (c *controller) rpop(args, commandAndArgs []string) resp.Value {
 	if len(args) < 1 {
 		return resp.SimpleError{Value: "RPOP command must have at least 1 arg"}
 	}

@@ -6,8 +6,8 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
-func (subs *subscribers) removeSubscriberFromChannelSubs(sub *subscriber, channel string) []*subscriber {
-	subsChan := subs.channelSubs[channel]
+func (c *controller) removeSubscriberFromChannelSubs(sub *subscriber, channel string) []*subscriber {
+	subsChan := c.channelSubs[channel]
 	result := make([]*subscriber, 0, len(subsChan))
 	for _, s := range subsChan {
 		if s != sub {
@@ -17,31 +17,31 @@ func (subs *subscribers) removeSubscriberFromChannelSubs(sub *subscriber, channe
 	return result
 }
 
-func (subs *subscribers) getSubscriber(conn net.Conn) *subscriber {
-	subs.rwMut.RLock()
-	defer subs.rwMut.RUnlock()
+func (c *controller) getSubscriber(conn net.Conn) *subscriber {
+	c.rwMut.RLock()
+	defer c.rwMut.RUnlock()
 
 	addr := utils.GetRemoteAddr(conn)
-	if s, ok := subs.connSubs[addr]; ok {
+	if s, ok := c.connSubs[addr]; ok {
 		return s
 	}
 	return nil
 }
 
-func (subs *subscribers) getOrCreateSubscriber(conn net.Conn) *subscriber {
-	subs.rwMut.RLock()
+func (c *controller) getOrCreateSubscriber(conn net.Conn) *subscriber {
+	c.rwMut.RLock()
 	addr := utils.GetRemoteAddr(conn)
 
-	if s, ok := subs.connSubs[addr]; ok {
-		subs.rwMut.RUnlock()
+	if s, ok := c.connSubs[addr]; ok {
+		c.rwMut.RUnlock()
 		return s
 	}
-	subs.rwMut.RUnlock()
+	c.rwMut.RUnlock()
 
-	subs.rwMut.Lock()
-	defer subs.rwMut.Unlock()
+	c.rwMut.Lock()
+	defer c.rwMut.Unlock()
 
-	if s, ok := subs.connSubs[addr]; ok {
+	if s, ok := c.connSubs[addr]; ok {
 		return s
 	}
 
@@ -50,6 +50,6 @@ func (subs *subscribers) getOrCreateSubscriber(conn net.Conn) *subscriber {
 		ch:           make(chan string),
 		subscribedTo: make(map[string]bool),
 	}
-	subs.connSubs[addr] = s
+	c.connSubs[addr] = s
 	return s
 }

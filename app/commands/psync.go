@@ -8,7 +8,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) psync(args []string, conn net.Conn) resp.Value {
+func (c *controller) psync(args []string, conn net.Conn) resp.Value {
 	if len(args) != 2 {
 		return resp.SimpleError{Value: "PSYNC command error: only 2 argument supported"}
 	}

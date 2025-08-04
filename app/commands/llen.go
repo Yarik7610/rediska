@@ -5,7 +5,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) llen(args []string) resp.Value {
+func (c *controller) llen(args []string) resp.Value {
 	if len(args) != 1 {
 		return resp.SimpleError{Value: "LLEN command must have 1 arg"}
 	}

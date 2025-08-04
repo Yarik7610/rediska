@@ -4,7 +4,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) del(args, commandAndArgs []string) resp.Value {
+func (c *controller) del(args, commandAndArgs []string) resp.Value {
 	for _, key := range args {
 		c.storage.Del(key)
 	}

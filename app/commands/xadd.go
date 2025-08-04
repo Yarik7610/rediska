@@ -7,7 +7,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) xadd(args, commandAndArgs []string) resp.Value {
+func (c *controller) xadd(args, commandAndArgs []string) resp.Value {
 	if len(args) < 4 {
 		return resp.SimpleError{Value: "XADD command must have at least 4 args"}
 	}

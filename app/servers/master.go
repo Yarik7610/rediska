@@ -31,7 +31,7 @@ func newMaster(args *config.Args) *master {
 		replicas: make(map[string]net.Conn),
 		acks:     make(chan replication.Ack, 10),
 	}
-	m.commandController = commands.NewController(m.storage, m.args, m.subscribers, m)
+	m.commandController = commands.NewController(m.storage, m.args, m.pubsubController, m)
 	m.replicationInfo = m.initReplicationInfo()
 	return m
 }

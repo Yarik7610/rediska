@@ -13,21 +13,22 @@ type subscriber struct {
 	subscribedTo map[string]bool
 }
 
-type Subscribers interface {
+type Controller interface {
+	Publish(channel, message string) int
 	Subscribe(conn net.Conn, channels ...string) []SubscribeResponse
 	InSubscribeMode(conn net.Conn) bool
 	ValidateSubscribeModeCommand(cmd string, conn net.Conn) error
 	UnsubscribeFromAllChannels(conn net.Conn)
 }
 
-type subscribers struct {
+type controller struct {
 	channelSubs map[string][]*subscriber
 	connSubs    map[string]*subscriber
 	rwMut       sync.RWMutex
 }
 
-func NewSubscribers() Subscribers {
-	return &subscribers{
+func NewController() Controller {
+	return &controller{
 		channelSubs: make(map[string][]*subscriber),
 		connSubs:    make(map[string]*subscriber),
 	}
@@ -38,17 +39,21 @@ type SubscribeResponse struct {
 	SubscribedToLen int
 }
 
-func (subs *subscribers) Subscribe(conn net.Conn, channels ...string) []SubscribeResponse {
-	subscriber := subs.getOrCreateSubscriber(conn)
+func (c *controller) Publish(channel, message string) int {
+	return 5
+}
 
-	subs.rwMut.Lock()
-	defer subs.rwMut.Unlock()
+func (c *controller) Subscribe(conn net.Conn, channels ...string) []SubscribeResponse {
+	subscriber := c.getOrCreateSubscriber(conn)
+
+	c.rwMut.Lock()
+	defer c.rwMut.Unlock()
 
 	response := make([]SubscribeResponse, 0)
 	for _, channel := range channels {
 		if !subscriber.subscribedTo[channel] {
 			subscriber.subscribedTo[channel] = true
-			subs.channelSubs[channel] = append(subs.channelSubs[channel], subscriber)
+			c.channelSubs[channel] = append(c.channelSubs[channel], subscriber)
 		}
 		response = append(response, SubscribeResponse{
 			Channel:         channel,
@@ -58,30 +63,30 @@ func (subs *subscribers) Subscribe(conn net.Conn, channels ...string) []Subscrib
 	return response
 }
 
-func (subs *subscribers) InSubscribeMode(conn net.Conn) bool {
-	s := subs.getSubscriber(conn)
+func (c *controller) InSubscribeMode(conn net.Conn) bool {
+	s := c.getSubscriber(conn)
 	return s != nil
 }
 
-func (subs *subscribers) UnsubscribeFromAllChannels(conn net.Conn) {
-	subscriber := subs.getSubscriber(conn)
+func (c *controller) UnsubscribeFromAllChannels(conn net.Conn) {
+	subscriber := c.getSubscriber(conn)
 	if subscriber == nil {
 		return
 	}
 
-	subs.rwMut.Lock()
-	defer subs.rwMut.Unlock()
+	c.rwMut.Lock()
+	defer c.rwMut.Unlock()
 
 	subscriberAddr := utils.GetRemoteAddr(subscriber.conn)
 
 	for channel := range subscriber.subscribedTo {
-		subs.channelSubs[channel] = subs.removeSubscriberFromChannelSubs(subscriber, channel)
+		c.channelSubs[channel] = c.removeSubscriberFromChannelSubs(subscriber, channel)
 		delete(subscriber.subscribedTo, channel)
 
-		if len(subs.channelSubs[channel]) == 0 {
-			delete(subs.channelSubs, channel)
+		if len(c.channelSubs[channel]) == 0 {
+			delete(c.channelSubs, channel)
 		}
 	}
 
-	delete(subs.connSubs, subscriberAddr)
+	delete(c.connSubs, subscriberAddr)
 }

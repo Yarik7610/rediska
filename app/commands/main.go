@@ -12,23 +12,28 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-type Controller struct {
-	storage     *memory.MultiTypeStorage
-	args        *config.Args
-	subscribers pubsub.Subscribers
-	replication replication.Base
+type Controller interface {
+	HandleCommand(cmd resp.Value, conn net.Conn, writeResponseToConn bool) error
+	Write(cmd resp.Value, conn net.Conn) error
 }
 
-func NewController(storage *memory.MultiTypeStorage, args *config.Args, subscirbers pubsub.Subscribers, replication replication.Base) *Controller {
-	return &Controller{
-		storage:     storage,
-		args:        args,
-		subscribers: subscirbers,
-		replication: replication,
+type controller struct {
+	storage          *memory.MultiTypeStorage
+	args             *config.Args
+	pubsubController pubsub.Controller
+	replication      replication.Base
+}
+
+func NewController(storage *memory.MultiTypeStorage, args *config.Args, pubsubController pubsub.Controller, replication replication.Base) Controller {
+	return &controller{
+		storage:          storage,
+		args:             args,
+		pubsubController: pubsubController,
+		replication:      replication,
 	}
 }
 
-func (c *Controller) HandleCommand(cmd resp.Value, conn net.Conn, writeResponseToConn bool) error {
+func (c *controller) HandleCommand(cmd resp.Value, conn net.Conn, writeResponseToConn bool) error {
 	result := c.handleCommand(cmd, conn)
 	if writeResponseToConn && result != nil {
 		err := c.Write(result, conn)
@@ -40,7 +45,7 @@ func (c *Controller) HandleCommand(cmd resp.Value, conn net.Conn, writeResponseT
 	return nil
 }
 
-func (c *Controller) Write(cmd resp.Value, conn net.Conn) error {
+func (c *controller) Write(cmd resp.Value, conn net.Conn) error {
 	encoded, err := cmd.Encode()
 	if err != nil {
 		fmt.Fprintf(conn, "-ERR encode error: %v\r\n", err)
@@ -50,7 +55,7 @@ func (c *Controller) Write(cmd resp.Value, conn net.Conn) error {
 	return err
 }
 
-func (c *Controller) updateMasterReplOffset(cmd resp.Value, conn net.Conn) error {
+func (c *controller) updateMasterReplOffset(cmd resp.Value, conn net.Conn) error {
 	b, err := cmd.Encode()
 	if err != nil {
 		return err
@@ -65,7 +70,7 @@ func (c *Controller) updateMasterReplOffset(cmd resp.Value, conn net.Conn) error
 	return nil
 }
 
-func (c *Controller) handleCommand(cmd resp.Value, conn net.Conn) resp.Value {
+func (c *controller) handleCommand(cmd resp.Value, conn net.Conn) resp.Value {
 	switch cmd := cmd.(type) {
 	case resp.Array:
 		return c.handleArrayCommand(cmd, conn)
@@ -76,7 +81,7 @@ func (c *Controller) handleCommand(cmd resp.Value, conn net.Conn) resp.Value {
 	}
 }
 
-func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Value {
+func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Value {
 	if len(cmd.Value) == 0 {
 		return resp.SimpleError{Value: "empty RESP command array"}
 	}
@@ -89,7 +94,7 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 	command := commandAndArgs[0]
 	args := commandAndArgs[1:]
 
-	err = c.subscribers.ValidateSubscribeModeCommand(command, conn)
+	err = c.pubsubController.ValidateSubscribeModeCommand(command, conn)
 	if err != nil {
 		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
 	}
@@ -152,7 +157,7 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 	}
 }
 
-func (c *Controller) handleSimpleStringCommand(cmd resp.SimpleString, conn net.Conn) resp.Value {
+func (c *controller) handleSimpleStringCommand(cmd resp.SimpleString, conn net.Conn) resp.Value {
 	switch cmd.Value {
 	case "PING":
 		return c.ping(conn)
@@ -161,7 +166,7 @@ func (c *Controller) handleSimpleStringCommand(cmd resp.SimpleString, conn net.C
 	}
 }
 
-func (c *Controller) propagateWriteCommand(commandAndArgs []string) {
+func (c *controller) propagateWriteCommand(commandAndArgs []string) {
 	if m, ok := c.replication.(replication.Master); ok {
 		m.SetHasPendingWrites(true)
 		go m.Propagate(commandAndArgs)

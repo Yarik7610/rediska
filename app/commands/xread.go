@@ -8,7 +8,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) xread(args []string) resp.Value {
+func (c *controller) xread(args []string) resp.Value {
 	if len(args) < 3 {
 		return resp.SimpleError{Value: "XREAD command must have at least 3 args"}
 	}

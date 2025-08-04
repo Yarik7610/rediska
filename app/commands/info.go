@@ -6,7 +6,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) info(args []string) resp.Value {
+func (c *controller) info(args []string) resp.Value {
 	if len(args) != 1 {
 		return resp.SimpleError{Value: "INFO command error: only 1 argument supported"}
 	}

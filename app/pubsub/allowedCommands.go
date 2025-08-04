@@ -9,8 +9,8 @@ import (
 
 var ALLOWED_COMMANDS = []string{"SUBSCRIBE", "UNSUBSCRIBE", "PSUBSCRIBE", "PUNSUBSCRIBE", "PING", "QUIT"}
 
-func (subs *subscribers) ValidateSubscribeModeCommand(cmd string, conn net.Conn) error {
-	if !subs.InSubscribeMode(conn) {
+func (c *controller) ValidateSubscribeModeCommand(cmd string, conn net.Conn) error {
+	if !c.InSubscribeMode(conn) {
 		return nil
 	}
 	if !slices.Contains(ALLOWED_COMMANDS, strings.ToUpper(cmd)) {

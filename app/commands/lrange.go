@@ -8,7 +8,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) lrange(args []string) resp.Value {
+func (c *controller) lrange(args []string) resp.Value {
 	if len(args) != 3 {
 		return resp.SimpleError{Value: "LRANGE command must have 3 args"}
 	}

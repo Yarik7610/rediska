@@ -19,10 +19,10 @@ import (
 
 type base struct {
 	storage           *memory.MultiTypeStorage
-	respController    *resp.Controller
-	commandController *commands.Controller
 	args              *config.Args
-	subscribers       pubsub.Subscribers
+	respController    *resp.Controller
+	commandController commands.Controller
+	pubsubController  pubsub.Controller
 	replicationInfo   *replication.Info
 }
 
@@ -30,10 +30,10 @@ var _ replication.Base = (*base)(nil)
 
 func newBase(args *config.Args) *base {
 	return &base{
-		storage:        memory.NewMultiTypeStorage(),
-		respController: resp.NewController(),
-		args:           args,
-		subscribers:    pubsub.NewSubscribers(),
+		storage:          memory.NewMultiTypeStorage(),
+		respController:   resp.NewController(),
+		args:             args,
+		pubsubController: pubsub.NewController(),
 	}
 }
 
@@ -115,7 +115,7 @@ func (base *base) handleClient(initialBuffer []byte, conn net.Conn, writeRespons
 			addr := utils.GetRemoteAddr(conn)
 			if errors.Is(err, io.EOF) {
 				log.Printf("Connection %s closed: (EOF)", addr)
-				base.subscribers.UnsubscribeFromAllChannels(conn)
+				base.pubsubController.UnsubscribeFromAllChannels(conn)
 				return
 			}
 			log.Printf("Connection %s read error: %v", addr, err)

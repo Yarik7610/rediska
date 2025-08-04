@@ -7,7 +7,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) xrange(args []string) resp.Value {
+func (c *controller) xrange(args []string) resp.Value {
 	if len(args) != 3 {
 		return resp.SimpleError{Value: "XRANGE command must have 3 args"}
 	}

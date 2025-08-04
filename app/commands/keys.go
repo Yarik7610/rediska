@@ -4,7 +4,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) keys(args []string) resp.Value {
+func (c *controller) keys(args []string) resp.Value {
 	if len(args) != 1 {
 		return resp.SimpleError{Value: "KEYS command error: only 1 argument supported"}
 	}

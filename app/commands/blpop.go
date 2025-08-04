@@ -8,7 +8,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) blpop(args, commandAndArgs []string) resp.Value {
+func (c *controller) blpop(args, commandAndArgs []string) resp.Value {
 	if len(args) < 2 {
 		return resp.SimpleError{Value: "BLPOP command must have at least 2 args"}
 	}

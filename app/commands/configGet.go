@@ -7,7 +7,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) configGet(args []string) resp.Value {
+func (c *controller) configGet(args []string) resp.Value {
 	if len(args) != 1 {
 		return resp.SimpleError{Value: "CONFIG GET command must have only 1 arg"}
 	}

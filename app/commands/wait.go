@@ -9,7 +9,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) wait(args []string) resp.Value {
+func (c *controller) wait(args []string) resp.Value {
 	if len(args) != 2 {
 		return resp.SimpleError{Value: "WAIT command error: only 2 more arguments supported"}
 	}

@@ -7,12 +7,12 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
-func (c *Controller) subscribe(args []string, conn net.Conn) resp.Value {
+func (c *controller) subscribe(args []string, conn net.Conn) resp.Value {
 	if len(args) < 1 {
 		return resp.SimpleError{Value: "SUBSCRIBE command must have at least 1 arg"}
 	}
 
-	gotResponses := c.subscribers.Subscribe(conn, args...)
+	gotResponses := c.pubsubController.Subscribe(conn, args...)
 
 	if len(gotResponses) == 1 {
 		return createRESPSubscribeChannelResponse(gotResponses[0])

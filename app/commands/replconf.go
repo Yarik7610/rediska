@@ -11,7 +11,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
-func (c *Controller) replconf(args []string, conn net.Conn) resp.Value {
+func (c *controller) replconf(args []string, conn net.Conn) resp.Value {
 	if len(args) != 2 {
 		return resp.SimpleError{Value: "REPLCONF command error: only 2 more arguments supported"}
 	}
