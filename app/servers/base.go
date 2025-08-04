@@ -20,7 +20,7 @@ import (
 type base struct {
 	args              *config.Args
 	replicationInfo   *replication.Info
-	storage           *memory.MultiTypeStorage
+	storage           memory.MultiTypeStorage
 	respController    resp.Controller
 	commandController commands.Controller
 	pubsubController  pubsub.Controller

@@ -6,7 +6,16 @@ type baseStorage interface {
 	Del(key string)
 }
 
-type MultiTypeStorage struct {
+type MultiTypeStorage interface {
+	Del(key string)
+	KeyExistsWithOtherType(key string, allowedType string) bool
+	Keys() []string
+	ListStorage() ListStorage
+	StreamStorage() StreamStorage
+	StringStorage() StringStorage
+}
+
+type multiTypeStorage struct {
 	storages map[string]baseStorage
 }
 
@@ -17,8 +26,8 @@ const (
 	TYPE_NONE   = "none"
 )
 
-func NewMultiTypeStorage() *MultiTypeStorage {
-	return &MultiTypeStorage{
+func NewMultiTypeStorage() *multiTypeStorage {
+	return &multiTypeStorage{
 		storages: map[string]baseStorage{
 			TYPE_STRING: NewStringStorage(),
 			TYPE_LIST:   NewListStorage(),
@@ -27,7 +36,7 @@ func NewMultiTypeStorage() *MultiTypeStorage {
 	}
 }
 
-func (s *MultiTypeStorage) Keys() []string {
+func (s *multiTypeStorage) Keys() []string {
 	allStorageKeys := make([]string, 0)
 	allStorageKeys = append(allStorageKeys, s.StringStorage().Keys()...)
 	allStorageKeys = append(allStorageKeys, s.ListStorage().Keys()...)
@@ -35,7 +44,7 @@ func (s *MultiTypeStorage) Keys() []string {
 	return allStorageKeys
 }
 
-func (s *MultiTypeStorage) Del(key string) {
+func (s *multiTypeStorage) Del(key string) {
 	if s.StringStorage().Has(key) {
 		s.StringStorage().Del(key)
 	} else if s.ListStorage().Has(key) {
@@ -45,7 +54,7 @@ func (s *MultiTypeStorage) Del(key string) {
 	}
 }
 
-func (s *MultiTypeStorage) KeyExistsWithOtherType(key string, allowedType string) bool {
+func (s *multiTypeStorage) KeyExistsWithOtherType(key string, allowedType string) bool {
 	for storageKey, storage := range s.storages {
 		if storageKey == allowedType {
 			continue
@@ -57,14 +66,14 @@ func (s *MultiTypeStorage) KeyExistsWithOtherType(key string, allowedType string
 	return false
 }
 
-func (s *MultiTypeStorage) StringStorage() StringStorage {
+func (s *multiTypeStorage) StringStorage() StringStorage {
 	return s.storages[TYPE_STRING].(StringStorage)
 }
 
-func (s *MultiTypeStorage) ListStorage() ListStorage {
+func (s *multiTypeStorage) ListStorage() ListStorage {
 	return s.storages[TYPE_LIST].(ListStorage)
 }
 
-func (s *MultiTypeStorage) StreamStorage() StreamStorage {
+func (s *multiTypeStorage) StreamStorage() StreamStorage {
 	return s.storages[TYPE_STREAM].(StreamStorage)
 }

@@ -18,13 +18,13 @@ type Controller interface {
 }
 
 type controller struct {
-	storage          *memory.MultiTypeStorage
 	args             *config.Args
+	storage          memory.MultiTypeStorage
 	pubsubController pubsub.Controller
 	replication      replication.Base
 }
 
-func NewController(storage *memory.MultiTypeStorage, args *config.Args, pubsubController pubsub.Controller, replication replication.Base) Controller {
+func NewController(storage memory.MultiTypeStorage, args *config.Args, pubsubController pubsub.Controller, replication replication.Base) Controller {
 	return &controller{
 		storage:          storage,
 		args:             args,
