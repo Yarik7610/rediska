@@ -106,6 +106,8 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.echo(args)
 	case "GET":
 		return c.get(args)
+	case "INCR":
+		return c.incr(args)
 	case "SET":
 		return c.set(args, commandAndArgs)
 	case "CONFIG":

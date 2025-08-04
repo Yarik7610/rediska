@@ -1,6 +1,8 @@
 package memory
 
 import (
+	"fmt"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -14,6 +16,7 @@ type StringStorage interface {
 	baseStorage
 	Get(key string) (*String, bool)
 	Set(key, value string)
+	Incr(key string) (int, error)
 	SetWithExpiry(key, value string, expires time.Time)
 	CleanExpiredKeys()
 	ItemExpired(item *String) bool
@@ -118,6 +121,24 @@ func (ss *stringStorage) SetWithExpiry(key, value string, expires time.Time) {
 	}
 
 	ss.data[key] = String{Value: value, Expires: expires}
+}
+
+func (ss *stringStorage) Incr(key string) (int, error) {
+	val, ok := ss.Get(key)
+	if !ok {
+		initialValue := 1
+		ss.Set(key, strconv.Itoa(initialValue))
+		return initialValue, nil
+	}
+
+	atoiVal, err := strconv.Atoi(val.Value)
+	if err != nil {
+		return 0, fmt.Errorf("value is not an integer or out of range")
+	}
+
+	incremented := atoiVal + 1
+	ss.Set(key, strconv.Itoa(incremented))
+	return incremented, nil
 }
 
 func (ss *stringStorage) CleanExpiredKeys() {
