@@ -1,6 +1,7 @@
 package pubsub
 
 import (
+	"log"
 	"net"
 	"sync"
 
@@ -9,7 +10,6 @@ import (
 
 type subscriber struct {
 	conn         net.Conn
-	ch           chan string
 	subscribedTo map[string]bool
 }
 
@@ -48,8 +48,13 @@ func (c *controller) Publish(channel, message string) int {
 		return 0
 	}
 
-	for range channelSubs {
-		// TODO publish message
+	for _, sub := range channelSubs {
+		go func(sub *subscriber) {
+			err := writeMessageToSubscriber(channel, message, sub)
+			if err != nil {
+				log.Printf("Publishing error: %s", err)
+			}
+		}(sub)
 	}
 
 	return len(channelSubs)

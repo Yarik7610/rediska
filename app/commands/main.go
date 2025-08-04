@@ -154,9 +154,11 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.subscribe(args, conn)
 	case "PUBLISH":
 		return c.publish(args)
-	default:
-		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
+	if c.pubsubController.InSubscribeMode(conn) {
+		return cmd
+	}
+	return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 }
 
 func (c *controller) handleSimpleStringCommand(cmd resp.SimpleString, conn net.Conn) resp.Value {

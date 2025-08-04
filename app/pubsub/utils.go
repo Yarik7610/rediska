@@ -1,10 +1,28 @@
 package pubsub
 
 import (
+	"fmt"
 	"net"
 
+	"github.com/codecrafters-io/redis-starter-go/app/resp"
 	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
+
+func writeMessageToSubscriber(channel, message string, sub *subscriber) error {
+	addr := utils.GetRemoteAddr(sub.conn)
+
+	response := resp.CreateBulkStringArray("message", channel, message)
+	b, err := response.Encode()
+	if err != nil {
+		return err
+	}
+
+	_, err = sub.conn.Write(b)
+	if err != nil {
+		return fmt.Errorf("write to subscriber %s error: %s", addr, err)
+	}
+	return nil
+}
 
 func (c *controller) removeSubscriberFromChannelSubs(sub *subscriber, channel string) []*subscriber {
 	subsChan := c.channelSubs[channel]
@@ -47,7 +65,6 @@ func (c *controller) getOrCreateSubscriber(conn net.Conn) *subscriber {
 
 	s := &subscriber{
 		conn:         conn,
-		ch:           make(chan string),
 		subscribedTo: make(map[string]bool),
 	}
 	c.connSubs[addr] = s
