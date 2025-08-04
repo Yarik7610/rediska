@@ -18,7 +18,7 @@ type Controller interface {
 	Subscribe(conn net.Conn, channels ...string) []ChanAndLen
 	Unsubscribe(conn net.Conn, channels ...string) []ChanAndLen
 	InSubscribeMode(conn net.Conn) bool
-	ValidateSubscribeModeCommand(cmd string, conn net.Conn) error
+	IsSubscribeModeCommand(cmd string) bool
 	UnsubscribeFromAllChannels(conn net.Conn)
 }
 
@@ -99,6 +99,12 @@ func (c *controller) Unsubscribe(conn net.Conn, channels ...string) []ChanAndLen
 			SubscribedToLen: len(sub.subscribedTo),
 		})
 	}
+
+	if len(sub.subscribedTo) == 0 {
+		subscriberAddr := utils.GetRemoteAddr(sub.conn)
+		delete(c.connSubs, subscriberAddr)
+	}
+
 	return response
 }
 

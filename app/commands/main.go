@@ -94,9 +94,10 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 	command := commandAndArgs[0]
 	args := commandAndArgs[1:]
 
-	err = c.pubsubController.ValidateSubscribeModeCommand(command, conn)
-	if err != nil {
-		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
+	if c.pubsubController.InSubscribeMode(conn) && !c.pubsubController.IsSubscribeModeCommand(command) {
+		return resp.SimpleError{
+			Value: fmt.Sprintf("ERR Can't execute '%s': only (P|S)SUBSCRIBE / (P|S)UNSUBSCRIBE / PING / QUIT / RESET are allowed in this context", strings.ToLower(command)),
+		}
 	}
 
 	switch strings.ToUpper(command) {
@@ -158,11 +159,9 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.unsubscribe(args, conn)
 	case "PUBLISH":
 		return c.publish(args)
+	default:
+		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
-	if c.pubsubController.InSubscribeMode(conn) {
-		return cmd
-	}
-	return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 }
 
 func (c *controller) handleSimpleStringCommand(cmd resp.SimpleString, conn net.Conn) resp.Value {
