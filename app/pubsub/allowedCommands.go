@@ -9,7 +9,7 @@ import (
 
 var ALLOWED_COMMANDS = []string{"SUBSCRIBE", "UNSUBSCRIBE", "PSUBSCRIBE", "PUNSUBSCRIBE", "PING", "QUIT"}
 
-func (subs *subscribers) HandleSubscribeModeCommand(cmd string, conn net.Conn) error {
+func (subs *subscribers) ValidateSubscribeModeCommand(cmd string, conn net.Conn) error {
 	if !subs.InSubscribeMode(conn) {
 		return nil
 	}

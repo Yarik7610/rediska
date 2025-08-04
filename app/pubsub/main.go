@@ -16,7 +16,7 @@ type subscriber struct {
 type Subscribers interface {
 	Subscribe(conn net.Conn, channels ...string) []SubscribeResponse
 	InSubscribeMode(conn net.Conn) bool
-	HandleSubscribeModeCommand(cmd string, conn net.Conn) error
+	ValidateSubscribeModeCommand(cmd string, conn net.Conn) error
 	UnsubscribeFromAllChannels(conn net.Conn)
 }
 

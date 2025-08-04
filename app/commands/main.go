@@ -70,7 +70,7 @@ func (c *Controller) handleCommand(cmd resp.Value, conn net.Conn) resp.Value {
 	case resp.Array:
 		return c.handleArrayCommand(cmd, conn)
 	case resp.SimpleString:
-		return c.handleSimpleStringCommand(cmd)
+		return c.handleSimpleStringCommand(cmd, conn)
 	default:
 		return resp.SimpleError{Value: "commands must be sent as RESP array or simple string"}
 	}
@@ -89,14 +89,14 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 	command := commandAndArgs[0]
 	args := commandAndArgs[1:]
 
-	err = c.subscribers.HandleSubscribeModeCommand(command, conn)
+	err = c.subscribers.ValidateSubscribeModeCommand(command, conn)
 	if err != nil {
 		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
 	}
 
 	switch strings.ToUpper(command) {
 	case "PING":
-		return c.ping()
+		return c.ping(conn)
 	case "ECHO":
 		return c.echo(args)
 	case "GET":
@@ -152,10 +152,10 @@ func (c *Controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 	}
 }
 
-func (c *Controller) handleSimpleStringCommand(cmd resp.SimpleString) resp.Value {
+func (c *Controller) handleSimpleStringCommand(cmd resp.SimpleString, conn net.Conn) resp.Value {
 	switch cmd.Value {
 	case "PING":
-		return c.ping()
+		return c.ping(conn)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", cmd.Value)}
 	}
