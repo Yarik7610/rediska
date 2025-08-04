@@ -28,6 +28,30 @@ func TestStringStorageSet(t *testing.T) {
 	})
 }
 
+func TestStringStorageIncr(t *testing.T) {
+	storage := NewStringStorage()
+
+	t.Run("incr nonexistent", func(t *testing.T) {
+		incremented, err := storage.Incr("key1")
+		assert.NoError(t, err)
+		assert.Equal(t, 1, incremented)
+	})
+
+	t.Run("incr existent valid", func(t *testing.T) {
+		storage.Set("key1", "1")
+		incremented, err := storage.Incr("key1")
+		assert.NoError(t, err)
+		assert.Equal(t, 2, incremented)
+	})
+
+	t.Run("incr existent invalid", func(t *testing.T) {
+		storage.Set("key1", "invalid")
+		incremented, err := storage.Incr("key1")
+		assert.Error(t, err)
+		assert.Equal(t, 0, incremented)
+	})
+}
+
 func TestStringStorageSetWithExpiry(t *testing.T) {
 	storage := NewStringStorage()
 
