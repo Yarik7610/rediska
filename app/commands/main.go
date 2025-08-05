@@ -26,8 +26,8 @@ type controller struct {
 
 func NewController(storage memory.MultiTypeStorage, args *config.Args, pubsubController pubsub.Controller, replicationController replication.BaseController) Controller {
 	return &controller{
-		storage:               storage,
 		args:                  args,
+		storage:               storage,
 		pubsubController:      pubsubController,
 		replicationController: replicationController,
 	}

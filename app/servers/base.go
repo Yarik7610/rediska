@@ -14,23 +14,26 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/persistence/rdb"
 	"github.com/codecrafters-io/redis-starter-go/app/pubsub"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
+	"github.com/codecrafters-io/redis-starter-go/app/transaction"
 	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
 type base struct {
-	args              *config.Args
-	storage           memory.MultiTypeStorage
-	respController    resp.Controller
-	commandController commands.Controller
-	pubsubController  pubsub.Controller
+	args                  *config.Args
+	storage               memory.MultiTypeStorage
+	respController        resp.Controller
+	pubsubController      pubsub.Controller
+	transactionController transaction.Controller
+	commandController     commands.Controller
 }
 
 func newBase(args *config.Args) *base {
 	return &base{
-		storage:          memory.NewMultiTypeStorage(),
-		respController:   resp.NewController(),
-		args:             args,
-		pubsubController: pubsub.NewController(),
+		args:                  args,
+		storage:               memory.NewMultiTypeStorage(),
+		respController:        resp.NewController(),
+		pubsubController:      pubsub.NewController(),
+		transactionController: transaction.NewController(),
 	}
 }
 
