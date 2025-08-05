@@ -89,6 +89,14 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 	command := commandAndArgs[0]
 	args := commandAndArgs[1:]
 
+	if c.transactionController.InTransaction(conn) {
+		// In original redis logic is a bit more complicated
+		// First all commands are validated and then they are executed or queued
+		// In mine, all commands, even invalid, are queued and when EXEC works i response with resp.SimpleError if there is an error
+		c.transactionController.EnqueueCommand(conn, cmd)
+		return resp.SimpleString{Value: "QUEUED"}
+	}
+
 	if c.pubsubController.InSubscribeMode(conn) && !c.pubsubController.IsSubscribeModeCommand(command) {
 		return resp.SimpleError{
 			Value: fmt.Sprintf("ERR Can't execute '%s': only (P|S)SUBSCRIBE / (P|S)UNSUBSCRIBE / PING / QUIT / RESET are allowed in this context", strings.ToLower(command)),
