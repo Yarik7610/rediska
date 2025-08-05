@@ -10,33 +10,33 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/pubsub"
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
+	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
 type Controller interface {
 	HandleCommand(cmd resp.Value, conn net.Conn, writeResponseToConn bool) error
-	Write(cmd resp.Value, conn net.Conn) error
 }
 
 type controller struct {
-	args             *config.Args
-	storage          memory.MultiTypeStorage
-	pubsubController pubsub.Controller
-	replication      replication.Base
+	args                  *config.Args
+	storage               memory.MultiTypeStorage
+	pubsubController      pubsub.Controller
+	replicationController replication.BaseController
 }
 
-func NewController(storage memory.MultiTypeStorage, args *config.Args, pubsubController pubsub.Controller, replication replication.Base) Controller {
+func NewController(storage memory.MultiTypeStorage, args *config.Args, pubsubController pubsub.Controller, replicationController replication.BaseController) Controller {
 	return &controller{
-		storage:          storage,
-		args:             args,
-		pubsubController: pubsubController,
-		replication:      replication,
+		storage:               storage,
+		args:                  args,
+		pubsubController:      pubsubController,
+		replicationController: replicationController,
 	}
 }
 
 func (c *controller) HandleCommand(cmd resp.Value, conn net.Conn, writeResponseToConn bool) error {
 	result := c.handleCommand(cmd, conn)
 	if writeResponseToConn && result != nil {
-		err := c.Write(result, conn)
+		err := utils.WriteCommand(result, conn)
 		if err != nil {
 			return err
 		}
@@ -45,27 +45,14 @@ func (c *controller) HandleCommand(cmd resp.Value, conn net.Conn, writeResponseT
 	return nil
 }
 
-func (c *controller) Write(cmd resp.Value, conn net.Conn) error {
-	encoded, err := cmd.Encode()
-	if err != nil {
-		fmt.Fprintf(conn, "-ERR encode error: %v\r\n", err)
-		return err
-	}
-	_, err = conn.Write(encoded)
-	return err
-}
-
 func (c *controller) updateMasterReplOffset(cmd resp.Value, conn net.Conn) error {
-	b, err := cmd.Encode()
-	if err != nil {
-		return err
-	}
-	l := len(b)
-
-	if r, ok := c.replication.(replication.Replica); ok {
-		if r.GetMasterConn() == conn {
-			c.replication.IncrMasterReplOffset(l)
+	if r, ok := c.replicationController.(replication.ReplicaController); ok && r.GetMasterConn() == conn {
+		b, err := cmd.Encode()
+		if err != nil {
+			return err
 		}
+		l := len(b)
+		c.replicationController.IncrMasterReplOffset(l)
 	}
 	return nil
 }
@@ -174,7 +161,7 @@ func (c *controller) handleSimpleStringCommand(cmd resp.SimpleString, conn net.C
 }
 
 func (c *controller) propagateWriteCommand(commandAndArgs []string) {
-	if m, ok := c.replication.(replication.Master); ok {
+	if m, ok := c.replicationController.(replication.MasterController); ok {
 		m.SetHasPendingWrites(true)
 		go m.Propagate(commandAndArgs)
 	}

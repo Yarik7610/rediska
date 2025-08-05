@@ -2,6 +2,7 @@ package servers
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -12,21 +13,17 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/persistence/rdb"
 	"github.com/codecrafters-io/redis-starter-go/app/pubsub"
-	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
 type base struct {
 	args              *config.Args
-	replicationInfo   *replication.Info
 	storage           memory.MultiTypeStorage
 	respController    resp.Controller
 	commandController commands.Controller
 	pubsubController  pubsub.Controller
 }
-
-var _ replication.Base = (*base)(nil)
 
 func newBase(args *config.Args) *base {
 	return &base{
@@ -35,22 +32,6 @@ func newBase(args *config.Args) *base {
 		args:             args,
 		pubsubController: pubsub.NewController(),
 	}
-}
-
-func (base *base) Info() *replication.Info {
-	return base.replicationInfo
-}
-
-func (base *base) SetMasterReplID(replID string) {
-	base.replicationInfo.MasterReplID = replID
-}
-
-func (base *base) SetMasterReplOfffset(replOffset int) {
-	base.replicationInfo.MasterReplOffset = replOffset
-}
-
-func (base *base) IncrMasterReplOffset(replOffset int) {
-	base.replicationInfo.MasterReplOffset += replOffset
 }
 
 func (base *base) initStorage() {
@@ -98,6 +79,16 @@ func (base *base) putRDBStringItemsIntoStorage(items map[string]memory.String) {
 			base.storage.StringStorage().Set(key, item.Value)
 		}
 	}
+}
+
+func (base *base) listenTCP() net.Listener {
+	address := fmt.Sprintf("%s:%d", base.args.Host, base.args.Port)
+
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Fatalf("Failed to bind to address: %s\n", address)
+	}
+	return listener
 }
 
 func (base *base) handleClient(initialBuffer []byte, conn net.Conn, writeResponseToConn bool) {

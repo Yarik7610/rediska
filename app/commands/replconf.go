@@ -20,11 +20,11 @@ func (c *controller) replconf(args []string, conn net.Conn) resp.Value {
 
 	secondCommand := args[0]
 	arg := args[1]
-	switch rt := c.replication.(type) {
-	case replication.Master:
+	switch replicationController := c.replicationController.(type) {
+	case replication.MasterController:
 		switch strings.ToLower(secondCommand) {
 		case "listening-port":
-			rt.AddReplicaConn(addr, conn)
+			replicationController.AddReplicaConn(conn)
 			return resp.SimpleString{Value: "OK"}
 		case "capa":
 			if arg != "psync2" {
@@ -36,32 +36,32 @@ func (c *controller) replconf(args []string, conn net.Conn) resp.Value {
 			if err != nil {
 				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF ACK master offset atoi error: %s", secondCommand)}
 			}
-			rt.SendAck(addr, ackOffset)
+			replicationController.SendAck(addr, ackOffset)
 			return nil
 		default:
 			return resp.SimpleError{Value: fmt.Sprintf("REPLCONF master unsupported second command: %s", secondCommand)}
 		}
-	case replication.Replica:
+	case replication.ReplicaController:
 		switch strings.ToUpper(secondCommand) {
 		case "GETACK":
 			if arg != "*" {
 				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF GETACK replica unsupported argument: %s", arg)}
 			}
-			if rt.GetMasterConn() != conn {
+			if replicationController.GetMasterConn() != conn {
 				return resp.SimpleError{Value: "REPLCONF GETACK * can be send only by master"}
 			}
 
 			// No syncing with propagated write commands from master
 			// Ideally, we should wait here, until replica won't have any write commands from master in processing
-			// Or we need to compare that ack.offset >= master.MasterReplOffset and only than push ack to ackedReplicas (wait.go)
-			response := resp.CreateBulkStringArray("REPLCONF", "ACK", strconv.Itoa(rt.Info().MasterReplOffset))
-			if err := c.Write(response, conn); err != nil {
+			// Or we need to compare that Ack.offset >= master.MasterReplOffset and only than push Ack to ackedReplicas (wait.go)
+			response := resp.CreateBulkStringArray("REPLCONF", "ACK", strconv.Itoa(replicationController.Info().MasterReplOffset))
+			if err := utils.WriteCommand(response, conn); err != nil {
 				return resp.SimpleError{Value: fmt.Sprintf("REPLCONF GETACK * write to master error: %v", err)}
 			}
 			return nil
 		}
 		return resp.SimpleError{Value: fmt.Sprintf("REPLCONF isn't supported for replica: %s", secondCommand)}
 	default:
-		return resp.SimpleError{Value: fmt.Sprintf("REPLCONF command detected unknown type assertion: %T", rt)}
+		return resp.SimpleError{Value: fmt.Sprintf("REPLCONF command detected unknown type assertion: %T", replicationController)}
 	}
 }

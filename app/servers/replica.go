@@ -16,61 +16,48 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/config"
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
+	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
 type replica struct {
 	*base
-	masterConn         net.Conn
-	acceptClientsReady chan struct{}
-	connectionsWG      sync.WaitGroup
-	masterConnBuffer   []byte
+	replicationController replication.ReplicaController
+	masterConnBuffer      []byte
 }
 
 func newReplica(args *config.Args) Server {
 	r := &replica{
-		base:               newBase(args),
-		acceptClientsReady: make(chan struct{}),
-		masterConnBuffer:   make([]byte, 0),
+		base:                  newBase(args),
+		replicationController: replication.NewReplicaController(),
+		masterConnBuffer:      make([]byte, 0),
 	}
-	r.commandController = commands.NewController(r.storage, r.args, r.pubsubController, r)
-	r.replicationInfo = r.initReplicationInfo()
+	r.commandController = commands.NewController(r.storage, r.args, r.pubsubController, r.replicationController)
 	return r
 }
 
 func (r *replica) Start() {
+	var wg sync.WaitGroup
+
 	r.initStorage()
+	listener := r.listenTCP()
 
-	r.connectionsWG.Add(1)
+	wg.Add(1)
+	go func(listener net.Listener) {
+		defer wg.Done()
+		r.acceptClientConnections(listener)
+	}(listener)
+
+	wg.Add(1)
 	go func() {
-		defer r.connectionsWG.Done()
-		r.acceptClientConnections()
-	}()
-
-	<-r.acceptClientsReady
-
-	r.connectionsWG.Add(1)
-	go func() {
-		defer r.connectionsWG.Done()
+		defer wg.Done()
 		r.connectToMaster()
 	}()
 
-	r.connectionsWG.Wait()
+	wg.Wait()
 }
 
-func (r *replica) GetMasterConn() net.Conn {
-	return r.masterConn
-}
-
-func (r *replica) acceptClientConnections() {
-	address := fmt.Sprintf("%s:%d", r.args.Host, r.args.Port)
-
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		log.Fatalf("Failed to bind to address: %s\n", address)
-	}
+func (r *replica) acceptClientConnections(listener net.Listener) {
 	defer listener.Close()
-
-	r.acceptClientsReady <- struct{}{}
 
 	for {
 		conn, err := listener.Accept()
@@ -95,7 +82,7 @@ func (r *replica) dialMaster() {
 	if err != nil {
 		log.Fatalf("Failed to dial master address: %s\n: %v", address, err)
 	}
-	r.masterConn = conn
+	r.replicationController.SetMasterConn(conn)
 }
 
 func (r *replica) processMasterHandshake() {
@@ -106,7 +93,7 @@ func (r *replica) processMasterHandshake() {
 
 func (r *replica) processMasterHandshakePING() {
 	pingCommand := resp.CreateBulkStringArray("PING")
-	err := r.commandController.Write(pingCommand, r.masterConn)
+	err := utils.WriteCommand(pingCommand, r.replicationController.GetMasterConn())
 	if err != nil {
 		log.Fatalf("Master handshake PING (1/3) write error: %s\n", err)
 	}
@@ -124,7 +111,7 @@ func (r *replica) processMasterHandshakeREPLCONF() {
 	}
 
 	for _, command := range commands {
-		err := r.commandController.Write(command, r.masterConn)
+		err := utils.WriteCommand(command, r.replicationController.GetMasterConn())
 		if err != nil {
 			log.Fatalf("Master handshake REPLCONF (2/3) write error: %s\n", err)
 		}
@@ -138,7 +125,7 @@ func (r *replica) processMasterHandshakeREPLCONF() {
 
 func (r *replica) processMasterHandshakePSYNC() {
 	psyncCommand := resp.CreateBulkStringArray("PSYNC", "?", "-1")
-	err := r.commandController.Write(psyncCommand, r.masterConn)
+	err := utils.WriteCommand(psyncCommand, r.replicationController.GetMasterConn())
 	if err != nil {
 		log.Fatalf("Master handshake PSYNC (3/3) write error: %s\n", err)
 	}
@@ -159,8 +146,8 @@ func (r *replica) processMasterHandshakePSYNC() {
 	if err != nil {
 		log.Fatalf("Master handshake PSYNC (3/3) psync response has wrong replication offset: %v", err)
 	}
-	r.SetMasterReplID(replID)
-	r.SetMasterReplOfffset(atoiReplOffset)
+	r.replicationController.SetMasterReplID(replID)
+	r.replicationController.SetMasterReplOfffset(atoiReplOffset)
 
 	rdbPayload, restBytes, err := r.readRDBFileFromMaster()
 	if err != nil {
@@ -169,19 +156,19 @@ func (r *replica) processMasterHandshakePSYNC() {
 	r.processRDBFile(rdbPayload)
 
 	if len(restBytes) > 0 {
-		r.masterConnBuffer = r.processCommands(restBytes, r.masterConn, false)
+		r.masterConnBuffer = r.processCommands(restBytes, r.replicationController.GetMasterConn(), false)
 	} else {
 		r.masterConnBuffer = nil
 	}
 }
 
 func (r *replica) handleMaster() {
-	r.handleClient(r.masterConnBuffer, r.masterConn, false)
+	r.handleClient(r.masterConnBuffer, r.replicationController.GetMasterConn(), false)
 }
 
 func (r *replica) readFromMaster() ([]byte, int, error) {
 	b := make([]byte, 1024)
-	n, err := r.masterConn.Read(b)
+	n, err := r.replicationController.GetMasterConn().Read(b)
 	if errors.Is(err, io.EOF) {
 		return b, n, nil
 	}
@@ -222,7 +209,7 @@ func (r *replica) readRDBFileFromMaster() ([]byte, []byte, error) {
 		return nil, b, nil
 	}
 
-	b, n, i, err := r.findLengthDelimiter(b, n)
+	b, n, i, err := r.findRDBLengthDelimiter(b, n)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -258,7 +245,7 @@ func (r *replica) ensureInitialRDBData(b []byte, n int) ([]byte, int, error) {
 	return b, n, nil
 }
 
-func (r *replica) findLengthDelimiter(b []byte, n int) ([]byte, int, int, error) {
+func (r *replica) findRDBLengthDelimiter(b []byte, n int) ([]byte, int, int, error) {
 	i := bytes.Index(b, []byte("\r\n"))
 	if i == -1 {
 		for i == -1 && n < 4096 {
@@ -309,12 +296,4 @@ func (r *replica) appendDataFromMaster(b []byte) ([]byte, error) {
 	}
 	b = append(b, tmp[:nRead]...)
 	return b, nil
-}
-
-func (*replica) initReplicationInfo() *replication.Info {
-	return &replication.Info{
-		Role:             "slave",
-		MasterReplID:     "?",
-		MasterReplOffset: -1,
-	}
 }

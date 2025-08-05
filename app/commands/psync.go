@@ -6,6 +6,7 @@ import (
 
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
+	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
 func (c *controller) psync(args []string, conn net.Conn) resp.Value {
@@ -16,24 +17,24 @@ func (c *controller) psync(args []string, conn net.Conn) resp.Value {
 	requestedReplID := args[0]
 	requestedReplOffset := args[1]
 
-	switch rt := c.replication.(type) {
-	case replication.Master:
+	switch replicationController := c.replicationController.(type) {
+	case replication.MasterController:
 		if requestedReplID == "?" && requestedReplOffset == "-1" {
-			if !rt.IsReplica(conn) {
+			if !replicationController.IsReplica(conn) {
 				return resp.SimpleError{Value: "PSYNC command error: failed to send FULLRESYNC, because no such replica exists"}
 			}
 
-			response := "FULLRESYNC" + " " + rt.Info().MasterReplID + " " + "0"
-			if err := c.Write(resp.SimpleString{Value: response}, conn); err != nil {
+			response := "FULLRESYNC" + " " + replicationController.Info().MasterReplID + " " + "0"
+			if err := utils.WriteCommand(resp.SimpleString{Value: response}, conn); err != nil {
 				return resp.SimpleError{Value: fmt.Sprintf("PSYNC command error: failed to send FULLRESYNC: %v", err)}
 			}
-			rt.SendRDBFile(conn)
+			replicationController.SendRDBFile(conn)
 			return nil
 		}
 		return resp.SimpleError{Value: fmt.Sprintf("PSYNC master unsupported replication id: %s and replication offset: %s", requestedReplID, requestedReplOffset)}
-	case replication.Replica:
+	case replication.ReplicaController:
 		return resp.SimpleError{Value: "PSYNC isn't supported for replica"}
 	default:
-		return resp.SimpleError{Value: fmt.Sprintf("PSYNC command detected unknown type assertion: %T", rt)}
+		return resp.SimpleError{Value: fmt.Sprintf("PSYNC command detected unknown type assertion: %T", replicationController)}
 	}
 }

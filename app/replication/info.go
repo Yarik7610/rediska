@@ -20,6 +20,6 @@ func (i *Info) String() string {
 	return strings.Join(data, "\r\n") + "\r\n"
 }
 
-func GenerateReplicationId() string {
+func generateReplicationId() string {
 	return "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"
 }
