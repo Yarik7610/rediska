@@ -12,8 +12,9 @@ type Controller interface {
 	AddConn(conn net.Conn)
 	RemoveConn(conn net.Conn)
 	InTransaction(conn net.Conn) bool
+	IsTransactionCommand(cmd string) bool
 	EnqueueCommand(conn net.Conn, cmd resp.Value) error
-	DequeueCommand(conn net.Conn) (resp.Value, error)
+	GetQueue(conn net.Conn) ([]resp.Value, error)
 }
 
 // Don't use mutex for queues because, clients never cross and share data
@@ -28,48 +29,43 @@ func NewController() Controller {
 	}
 }
 
-func (tc *controller) AddConn(conn net.Conn) {
+func (c *controller) AddConn(conn net.Conn) {
 	addr := utils.GetRemoteAddr(conn)
-	if _, ok := tc.connQueues[addr]; ok {
+	if _, ok := c.connQueues[addr]; ok {
 		return
 	}
-	tc.connQueues[addr] = make([]resp.Value, 0)
+	c.connQueues[addr] = make([]resp.Value, 0)
 }
 
-func (tc *controller) RemoveConn(conn net.Conn) {
+func (c *controller) RemoveConn(conn net.Conn) {
 	addr := utils.GetRemoteAddr(conn)
-	if _, ok := tc.connQueues[addr]; !ok {
+	if _, ok := c.connQueues[addr]; !ok {
 		return
 	}
-	delete(tc.connQueues, addr)
+	delete(c.connQueues, addr)
 }
 
-func (tc *controller) InTransaction(conn net.Conn) bool {
+func (c *controller) InTransaction(conn net.Conn) bool {
 	addr := utils.GetRemoteAddr(conn)
-	_, ok := tc.connQueues[addr]
+	_, ok := c.connQueues[addr]
 	return ok
 }
 
-func (tc *controller) EnqueueCommand(conn net.Conn, cmd resp.Value) error {
+func (c *controller) EnqueueCommand(conn net.Conn, cmd resp.Value) error {
 	addr := utils.GetRemoteAddr(conn)
-	queue := tc.getCommandsQueue(conn)
+	queue := c.getCommandsQueue(conn)
 	if queue == nil {
 		return fmt.Errorf("conn %s isn't in transaction", addr)
 	}
-	tc.connQueues[addr] = append(queue, cmd)
+	c.connQueues[addr] = append(queue, cmd)
 	return nil
 }
 
-func (tc *controller) DequeueCommand(conn net.Conn) (resp.Value, error) {
+func (c *controller) GetQueue(conn net.Conn) ([]resp.Value, error) {
 	addr := utils.GetRemoteAddr(conn)
-	queue := tc.getCommandsQueue(conn)
+	queue := c.getCommandsQueue(conn)
 	if queue == nil {
 		return nil, fmt.Errorf("conn %s isn't in transaction", addr)
 	}
-	if len(queue) == 0 {
-		return nil, fmt.Errorf("conn %s, pop from empty queue detected", addr)
-	}
-	cmd := queue[0]
-	tc.connQueues[addr] = queue[1:]
-	return cmd, nil
+	return queue, nil
 }

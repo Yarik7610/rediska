@@ -128,7 +128,7 @@ func (base *base) processCommands(buf []byte, conn net.Conn, writeResponseToConn
 			return buf
 		}
 
-		err = base.commandController.HandleCommand(value, conn, writeResponseToConn)
+		_, err = base.commandController.HandleCommand(value, conn, writeResponseToConn)
 		if err != nil {
 			log.Printf("handle command error: %v, continue to work", err)
 		}

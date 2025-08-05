@@ -15,7 +15,7 @@ import (
 )
 
 type Controller interface {
-	HandleCommand(cmd resp.Value, conn net.Conn, writeResponseToConn bool) error
+	HandleCommand(cmd resp.Value, conn net.Conn, writeResponseToConn bool) (resp.Value, error)
 }
 
 type controller struct {
@@ -41,16 +41,16 @@ func NewController(
 	}
 }
 
-func (c *controller) HandleCommand(cmd resp.Value, conn net.Conn, writeResponseToConn bool) error {
+func (c *controller) HandleCommand(cmd resp.Value, conn net.Conn, writeResponseToConn bool) (resp.Value, error) {
 	result := c.handleCommand(cmd, conn)
 	if writeResponseToConn && result != nil {
 		err := utils.WriteCommand(result, conn)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	c.updateMasterReplOffset(cmd, conn)
-	return nil
+	return result, nil
 }
 
 func (c *controller) updateMasterReplOffset(cmd resp.Value, conn net.Conn) error {
@@ -89,7 +89,7 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 	command := commandAndArgs[0]
 	args := commandAndArgs[1:]
 
-	if c.transactionController.InTransaction(conn) {
+	if c.transactionController.InTransaction(conn) && !c.transactionController.IsTransactionCommand(command) {
 		// In original redis logic is a bit more complicated
 		// First all commands are validated and then they are executed or queued
 		// In mine, all commands, even invalid, are queued and when EXEC works i response with resp.SimpleError if there is an error

@@ -10,7 +10,9 @@ func (c *controller) multi(args []string, conn net.Conn) resp.Value {
 	if len(args) != 0 {
 		return resp.SimpleError{Value: "MULTI command doesn't have args"}
 	}
-
+	if c.transactionController.InTransaction(conn) {
+		return resp.SimpleError{Value: "ERR MULTI calls can not be nested"}
+	}
 	c.transactionController.AddConn(conn)
 	return resp.SimpleString{Value: "OK"}
 }
