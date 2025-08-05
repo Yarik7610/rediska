@@ -26,7 +26,7 @@ const (
 	TYPE_NONE   = "none"
 )
 
-func NewMultiTypeStorage() *multiTypeStorage {
+func NewMultiTypeStorage() MultiTypeStorage {
 	return &multiTypeStorage{
 		storages: map[string]baseStorage{
 			TYPE_STRING: NewStringStorage(),
