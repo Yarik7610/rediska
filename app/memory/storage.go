@@ -10,6 +10,7 @@ type MultiTypeStorage interface {
 	Del(key string)
 	KeyExistsWithOtherType(key string, allowedType string) bool
 	Keys() []string
+	Type(key string) string
 	ListStorage() ListStorage
 	StreamStorage() StreamStorage
 	StringStorage() StringStorage
@@ -52,6 +53,19 @@ func (s *multiTypeStorage) Del(key string) {
 	} else if s.StreamStorage().Has(key) {
 		s.StreamStorage().Del(key)
 	}
+}
+
+func (s *multiTypeStorage) Type(key string) string {
+	if s.StringStorage().Has(key) {
+		return TYPE_STRING
+	}
+	if s.ListStorage().Has(key) {
+		return TYPE_LIST
+	}
+	if s.StreamStorage().Has(key) {
+		return TYPE_STREAM
+	}
+	return TYPE_NONE
 }
 
 func (s *multiTypeStorage) KeyExistsWithOtherType(key string, allowedType string) bool {
