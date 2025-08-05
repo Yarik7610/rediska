@@ -10,6 +10,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/pubsub"
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
+	"github.com/codecrafters-io/redis-starter-go/app/transaction"
 	"github.com/codecrafters-io/redis-starter-go/app/utils"
 )
 
@@ -20,16 +21,23 @@ type Controller interface {
 type controller struct {
 	args                  *config.Args
 	storage               memory.MultiTypeStorage
-	pubsubController      pubsub.Controller
 	replicationController replication.BaseController
+	pubsubController      pubsub.Controller
+	transactionController transaction.Controller
 }
 
-func NewController(storage memory.MultiTypeStorage, args *config.Args, pubsubController pubsub.Controller, replicationController replication.BaseController) Controller {
+func NewController(
+	args *config.Args,
+	storage memory.MultiTypeStorage,
+	replicationController replication.BaseController,
+	pubsubController pubsub.Controller,
+	transactionController transaction.Controller) Controller {
 	return &controller{
 		args:                  args,
 		storage:               storage,
-		pubsubController:      pubsubController,
 		replicationController: replicationController,
+		pubsubController:      pubsubController,
+		transactionController: transactionController,
 	}
 }
 
@@ -146,6 +154,8 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.unsubscribe(args, conn)
 	case "PUBLISH":
 		return c.publish(args)
+	case "MULTI":
+		return c.multi(args, conn)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
