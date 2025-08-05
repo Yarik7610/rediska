@@ -21,6 +21,9 @@ func (c *controller) exec(args []string, conn net.Conn) resp.Value {
 	if err != nil {
 		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
 	}
+
+	c.transactionController.RemoveConn(conn)
+
 	for _, command := range commands {
 		result, err := c.HandleCommand(command, conn, false)
 		if err != nil {
@@ -29,6 +32,5 @@ func (c *controller) exec(args []string, conn net.Conn) resp.Value {
 		results = append(results, result)
 	}
 
-	c.transactionController.RemoveConn(conn)
 	return resp.Array{Value: results}
 }
