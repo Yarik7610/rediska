@@ -156,6 +156,8 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.publish(args)
 	case "MULTI":
 		return c.multi(args, conn)
+	case "EXEC":
+		return c.exec(args, conn)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}
