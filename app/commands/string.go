@@ -10,6 +10,24 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
+func (c *controller) get(args []string) resp.Value {
+	if len(args) != 1 {
+		return resp.SimpleError{Value: "GET command must have only 1 arg"}
+	}
+
+	key := args[0]
+	if c.storage.KeyExistsWithOtherType(key, memory.TYPE_STRING) {
+		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
+	}
+
+	got, ok := c.storage.StringStorage().Get(key)
+	if !ok {
+		return resp.BulkString{Value: nil}
+	}
+
+	return resp.BulkString{Value: &got.Value}
+}
+
 func (c *controller) set(args, commandAndArgs []string) resp.Value {
 	if len(args) < 2 {
 		return resp.SimpleError{Value: "SET command must have at least 2 args"}
@@ -37,6 +55,24 @@ func (c *controller) set(args, commandAndArgs []string) resp.Value {
 	c.storage.StringStorage().Set(key, value)
 	c.propagateWriteCommand(commandAndArgs)
 	return resp.SimpleString{Value: "OK"}
+}
+
+func (c *controller) incr(args []string) resp.Value {
+	if len(args) != 1 {
+		return resp.SimpleError{Value: "INCR command must have only 1 arg"}
+	}
+
+	key := args[0]
+	if c.storage.KeyExistsWithOtherType(key, memory.TYPE_STRING) {
+		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
+	}
+
+	incremented, err := c.storage.StringStorage().Incr(key)
+	if err != nil {
+		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
+	}
+
+	return resp.Integer{Value: incremented}
 }
 
 func getExpireTime(expireMark, expireDuration string) (time.Time, error) {

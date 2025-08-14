@@ -34,7 +34,7 @@ func (list *List) Insert(score float64, member string) int {
 
 	nodeHeight := list.randomHeight()
 	if nodeHeight > list.Height {
-		list.increaseHeight(&update, nodeHeight)
+		list.increaseHeight(update, nodeHeight)
 	}
 
 	newNode := &Node{
@@ -62,13 +62,13 @@ func (list *List) Delete(score float64, member string) int {
 		found.Tower[level] = nil
 	}
 
-	list.decreaseHeight()
+	list.shrinkHeight()
 
 	list.Len--
 	return 1
 }
 
-func (list *List) search(score float64, member string) (*Node, [MAX_HEIGHT]*Node) {
+func (list *List) search(score float64, member string) (*Node, *[MAX_HEIGHT]*Node) {
 	var found *Node
 	var update [MAX_HEIGHT]*Node
 
@@ -93,7 +93,7 @@ func (list *List) search(score float64, member string) (*Node, [MAX_HEIGHT]*Node
 		update[level] = cur
 	}
 
-	return found, update
+	return found, &update
 }
 
 func (list *List) increaseHeight(update *[MAX_HEIGHT]*Node, newHeight int) {
@@ -103,7 +103,7 @@ func (list *List) increaseHeight(update *[MAX_HEIGHT]*Node, newHeight int) {
 	list.Height = newHeight
 }
 
-func (list *List) decreaseHeight() {
+func (list *List) shrinkHeight() {
 	for list.Height > 1 && list.Head.Tower[list.Height-1] == nil {
 		list.Height--
 	}

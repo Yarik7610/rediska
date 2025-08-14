@@ -8,6 +8,17 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
 )
 
+func (c *controller) multi(args []string, conn net.Conn) resp.Value {
+	if len(args) != 0 {
+		return resp.SimpleError{Value: "MULTI command doesn't have args"}
+	}
+	if c.transactionController.InTransaction(conn) {
+		return resp.SimpleError{Value: "ERR MULTI calls can not be nested"}
+	}
+	c.transactionController.AddConn(conn)
+	return resp.SimpleString{Value: "OK"}
+}
+
 func (c *controller) exec(args []string, conn net.Conn) resp.Value {
 	if len(args) != 0 {
 		return resp.SimpleError{Value: "EXEC command doesn't have args"}
@@ -33,4 +44,16 @@ func (c *controller) exec(args []string, conn net.Conn) resp.Value {
 	}
 
 	return resp.Array{Value: results}
+}
+
+func (c *controller) discard(args []string, conn net.Conn) resp.Value {
+	if len(args) != 0 {
+		return resp.SimpleError{Value: "DISCARD command doesn't have args"}
+	}
+	if !c.transactionController.InTransaction(conn) {
+		return resp.SimpleError{Value: "ERR DISCARD without MULTI"}
+	}
+
+	c.transactionController.RemoveConn(conn)
+	return resp.SimpleString{Value: "OK"}
 }

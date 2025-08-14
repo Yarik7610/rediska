@@ -98,7 +98,7 @@ List of commands, related to this extension:
 
 ### Multi type storage
 
-The project storage is `divided into small storages`. Each small storage stores its `own data type` and related to it `methods`. In original Redis, there is only one main storage (map) that just contains different storage types. My variant leads to a small overhead for commands that need to scan the whole storage. But i didn't decide to do it like in original Redis, because it would cause a lot of edge cases checks, type checking and type assertion overhead.
+The project storage is `divided into small storages`. Each small storage stores its `own data type` and related to it `methods`. In original Redis, there is only one main storage (map) that just contains different storage types. My variant leads to a small overhead for commands that need to scan the whole storage. But i didn't decide to do it like in original Redis, because it would cause a lot of edge cases checks, type checking and type assertion overhead. And also i don't block the whole storage, i block one type of storage at a time, so there can be parallel XADD and INCR commands for instance.
 
 List of commands, related to this extension:
 

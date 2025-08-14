@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	doublylinkedlist "github.com/codecrafters-io/redis-starter-go/app/data-structures/doublyLinkedList"
+	doublylinkedlist "github.com/codecrafters-io/redis-starter-go/app/data-structures/doubly-linked-list"
 )
 
 type ListStorage interface {

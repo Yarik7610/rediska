@@ -132,18 +132,12 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.wait(args)
 	case "DEL":
 		return c.del(args, commandAndArgs)
-	case "RPUSH":
-		return c.rpush(args, commandAndArgs)
-	case "LPUSH":
-		return c.lpush(args, commandAndArgs)
-	case "LPOP":
-		return c.lpop(args, commandAndArgs)
-	case "BLPOP":
-		return c.blpop(args, commandAndArgs)
-	case "RPOP":
-		return c.rpop(args, commandAndArgs)
-	case "BRPOP":
-		return c.brpop(args, commandAndArgs)
+	case "RPUSH", "LPUSH":
+		return c.push(commandAndArgs)
+	case "RPOP", "LPOP":
+		return c.pop(commandAndArgs)
+	case "BRPOP", "BLPOP":
+		return c.bpop(commandAndArgs)
 	case "LRANGE":
 		return c.lrange(args)
 	case "LLEN":
@@ -156,10 +150,8 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.xrange(args)
 	case "XREAD":
 		return c.xread(args)
-	case "SUBSCRIBE":
-		return c.subscribe(args, conn)
-	case "UNSUBSCRIBE":
-		return c.unsubscribe(args, conn)
+	case "SUBSCRIBE", "UNSUBSCRIBE":
+		return c.subcribeOrUnsubscribe(commandAndArgs, conn)
 	case "PUBLISH":
 		return c.publish(args)
 	case "MULTI":

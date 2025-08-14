@@ -3,7 +3,7 @@ package memory
 import (
 	"sync"
 
-	skiplist "github.com/codecrafters-io/redis-starter-go/app/data-structures/skipList"
+	skiplist "github.com/codecrafters-io/redis-starter-go/app/data-structures/skip-list"
 )
 
 type sortedSet struct {
