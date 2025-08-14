@@ -168,6 +168,8 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.exec(args, conn)
 	case "DISCARD":
 		return c.discard(args, conn)
+	case "ZADD":
+		return c.zadd(args, commandAndArgs)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}

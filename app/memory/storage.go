@@ -14,6 +14,7 @@ type MultiTypeStorage interface {
 	ListStorage() ListStorage
 	StreamStorage() StreamStorage
 	StringStorage() StringStorage
+	SortedSetStorage() SortedSetStorage
 }
 
 type multiTypeStorage struct {

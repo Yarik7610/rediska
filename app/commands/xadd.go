@@ -18,7 +18,7 @@ func (c *controller) xadd(args, commandAndArgs []string) resp.Value {
 		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
 	}
 
-	entryFields, err := createEntryFields(args[2:])
+	entryFields, err := parseEntryFields(args[2:])
 	if err != nil {
 		return resp.SimpleError{Value: err.Error()}
 	}
@@ -32,12 +32,14 @@ func (c *controller) xadd(args, commandAndArgs []string) resp.Value {
 	return resp.BulkString{Value: &gotStreamID}
 }
 
-func createEntryFields(rawFields []string) (map[string]string, error) {
+func parseEntryFields(rawFields []string) (map[string]string, error) {
 	entryFields := make(map[string]string)
+
 	rawEntryFieldsLen := len(rawFields)
 	if rawEntryFieldsLen%2 != 0 {
 		return nil, fmt.Errorf("XADD wrong entry fields count, need even count, detected count: %d", rawEntryFieldsLen)
 	}
+
 	for i := 0; i < len(rawFields)-1; i++ {
 		entryFields[rawFields[i]] = rawFields[i+1]
 	}
