@@ -20,13 +20,10 @@ func (c *controller) zadd(args, commandAndArgs []string) resp.Value {
 
 	members, scores, err := parseMembersAndScores(args[1:])
 	if err != nil {
-		return resp.SimpleError{Value: err.Error()}
+		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
 	}
 
 	insertedCount := c.storage.SortedSetStorage().Zadd(sortedSetKey, scores, members)
-	if err != nil {
-		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
-	}
 
 	c.propagateWriteCommand(commandAndArgs)
 	return resp.Integer{Value: insertedCount}

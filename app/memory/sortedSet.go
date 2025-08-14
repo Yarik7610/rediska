@@ -40,8 +40,13 @@ func (s *sortedSetStorage) Zadd(key string, scores []float64, members []string) 
 
 	insertedCount := 0
 	for i, member := range members {
+		if oldScore, ok := sortedSet.dict[member]; ok {
+			sortedSet.skipList.Delete(oldScore, member)
+			sortedSet.skipList.Insert(scores[i], member)
+		} else {
+			insertedCount += sortedSet.skipList.Insert(scores[i], member)
+		}
 		sortedSet.dict[member] = scores[i]
-		insertedCount = sortedSet.skipList.Insert(scores[i], member)
 	}
 
 	return insertedCount

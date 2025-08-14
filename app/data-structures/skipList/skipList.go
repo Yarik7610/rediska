@@ -29,7 +29,6 @@ func New() *List {
 func (list *List) Insert(score float64, member string) int {
 	found, update := list.search(score, member)
 	if found != nil {
-		found.Score = score
 		return 0
 	}
 
