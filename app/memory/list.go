@@ -3,19 +3,9 @@ package memory
 import (
 	"sync"
 	"time"
+
+	doublylinkedlist "github.com/codecrafters-io/redis-starter-go/app/data-structures/doublyLinkedList"
 )
-
-type Node struct {
-	val  string
-	next *Node
-	prev *Node
-}
-
-type DoubleLinkedList struct {
-	head *Node
-	tail *Node
-	len  int
-}
 
 type ListStorage interface {
 	baseStorage
@@ -30,13 +20,13 @@ type ListStorage interface {
 }
 
 type listStorage struct {
-	data  map[string]*DoubleLinkedList
+	data  map[string]*doublylinkedlist.List
 	rwMut sync.RWMutex
 	cond  *sync.Cond
 }
 
 func NewListStorage() ListStorage {
-	ls := &listStorage{data: make(map[string]*DoubleLinkedList)}
+	ls := &listStorage{data: make(map[string]*doublylinkedlist.List)}
 	ls.cond = sync.NewCond(&ls.rwMut)
 	return ls
 }
@@ -74,7 +64,7 @@ func (ls *listStorage) Llen(key string) int {
 	if !ok {
 		return 0
 	}
-	return list.len
+	return list.Len
 }
 
 func (ls *listStorage) Lrange(key string, startIdx, stopIdx int) []string {
@@ -88,18 +78,18 @@ func (ls *listStorage) Lrange(key string, startIdx, stopIdx int) []string {
 		return values
 	}
 
-	len := list.len
+	l := list.Len
 
 	if startIdx < 0 {
-		startIdx += len
+		startIdx += l
 		if startIdx < 0 {
 			startIdx = 0
 		}
 	}
 	if stopIdx < 0 {
-		stopIdx += len
-		if stopIdx >= len {
-			stopIdx = len - 1
+		stopIdx += l
+		if stopIdx >= l {
+			stopIdx = l - 1
 		}
 	}
 
@@ -107,53 +97,53 @@ func (ls *listStorage) Lrange(key string, startIdx, stopIdx int) []string {
 		return values
 	}
 
-	if startIdx >= len {
+	if startIdx >= l {
 		return values
 	}
-	if stopIdx >= len {
-		stopIdx = len - 1
+	if stopIdx >= l {
+		stopIdx = l - 1
 	}
 
-	curNode := list.head
+	curNode := list.Head
 
 	for range startIdx {
-		curNode = curNode.next
+		curNode = curNode.Next
 	}
 	for range stopIdx - startIdx + 1 {
 		if curNode == nil {
 			break
 		}
-		values = append(values, curNode.val)
-		curNode = curNode.next
+		values = append(values, curNode.Val)
+		curNode = curNode.Next
 	}
 	return values
 }
 
 func (ls *listStorage) Rpop(key string, count int) []string {
-	return ls.pop(key, count, deleteFromEnd)
+	return ls.pop(key, count, doublylinkedlist.DeleteFromEnd)
 }
 
 func (ls *listStorage) Lpop(key string, count int) []string {
-	return ls.pop(key, count, deleteFromStart)
+	return ls.pop(key, count, doublylinkedlist.DeleteFromStart)
 }
 
 func (ls *listStorage) Brpop(key string, timeoutS float64) *string {
-	return ls.bpop(key, timeoutS, deleteFromEnd)
+	return ls.bpop(key, timeoutS, doublylinkedlist.DeleteFromEnd)
 }
 
 func (ls *listStorage) Blpop(key string, timeoutS float64) *string {
-	return ls.bpop(key, timeoutS, deleteFromStart)
+	return ls.bpop(key, timeoutS, doublylinkedlist.DeleteFromStart)
 }
 
 func (ls *listStorage) Lpush(key string, values ...string) int {
-	return ls.push(insertInTheStart, key, values...)
+	return ls.push(doublylinkedlist.InsertInTheStart, key, values...)
 }
 
 func (ls *listStorage) Rpush(key string, values ...string) int {
-	return ls.push(insertInTheEnd, key, values...)
+	return ls.push(doublylinkedlist.InsertInTheEnd, key, values...)
 }
 
-func (ls *listStorage) pop(key string, count int, popFn func(list *DoubleLinkedList) *Node) []string {
+func (ls *listStorage) pop(key string, count int, popFn func(list *doublylinkedlist.List) *doublylinkedlist.Node) []string {
 	ls.rwMut.Lock()
 	defer ls.rwMut.Unlock()
 
@@ -162,8 +152,8 @@ func (ls *listStorage) pop(key string, count int, popFn func(list *DoubleLinkedL
 		return nil
 	}
 
-	if count > list.len {
-		count = list.len
+	if count > list.Len {
+		count = list.Len
 	}
 
 	popped := make([]string, 0)
@@ -172,19 +162,19 @@ func (ls *listStorage) pop(key string, count int, popFn func(list *DoubleLinkedL
 		if deleted == nil {
 			break
 		}
-		popped = append(popped, deleted.val)
+		popped = append(popped, deleted.Val)
 	}
 
 	return popped
 }
 
-func (ls *listStorage) bpop(key string, timeoutS float64, popFn func(list *DoubleLinkedList) *Node) *string {
+func (ls *listStorage) bpop(key string, timeoutS float64, popFn func(list *doublylinkedlist.List) *doublylinkedlist.Node) *string {
 	ls.rwMut.Lock()
 
-	if list, ok := ls.data[key]; ok && list.len > 0 {
+	if list, ok := ls.data[key]; ok && list.Len > 0 {
 		popped := popFn(list)
 		ls.rwMut.Unlock()
-		return &popped.val
+		return &popped.Val
 	}
 
 	if timeoutS < 0 {
@@ -195,10 +185,10 @@ func (ls *listStorage) bpop(key string, timeoutS float64, popFn func(list *Doubl
 	if timeoutS == 0 {
 		for {
 			ls.cond.Wait()
-			if list, ok := ls.data[key]; ok && list.len > 0 {
+			if list, ok := ls.data[key]; ok && list.Len > 0 {
 				popped := popFn(list)
 				ls.rwMut.Unlock()
-				return &popped.val
+				return &popped.Val
 			}
 		}
 	}
@@ -215,88 +205,28 @@ func (ls *listStorage) bpop(key string, timeoutS float64, popFn func(list *Doubl
 		}
 
 		ls.rwMut.Lock()
-		if list, ok := ls.data[key]; ok && list.len > 0 {
+		if list, ok := ls.data[key]; ok && list.Len > 0 {
 			popped := popFn(list)
 			ls.rwMut.Unlock()
-			return &popped.val
+			return &popped.Val
 		}
 	}
 }
 
-func (ls *listStorage) push(pushFn func(list *DoubleLinkedList, n *Node), key string, values ...string) int {
+func (ls *listStorage) push(pushFn func(list *doublylinkedlist.List, n *doublylinkedlist.Node), key string, values ...string) int {
 	ls.rwMut.Lock()
 	defer ls.rwMut.Unlock()
 
 	if _, ok := ls.data[key]; !ok {
-		ls.data[key] = &DoubleLinkedList{}
+		ls.data[key] = &doublylinkedlist.List{}
 	}
 
 	list := ls.data[key]
 
 	for _, val := range values {
-		n := &Node{val: val}
+		n := &doublylinkedlist.Node{Val: val}
 		pushFn(list, n)
 	}
 	ls.cond.Signal()
-	return list.len
-}
-
-func insertInTheStart(list *DoubleLinkedList, n *Node) {
-	if list.head == nil {
-		list.head = n
-		list.tail = n
-	} else {
-		n.next = list.head
-		list.head.prev = n
-		list.head = n
-	}
-	list.len++
-}
-
-func insertInTheEnd(list *DoubleLinkedList, n *Node) {
-	if list.tail == nil {
-		list.tail = n
-		list.head = n
-	} else {
-		list.tail.next = n
-		n.prev = list.tail
-		list.tail = n
-	}
-	list.len++
-}
-
-func deleteFromStart(list *DoubleLinkedList) *Node {
-	if list.head == nil {
-		return nil
-	}
-	deleted := list.head
-	next := list.head.next
-	if next == nil {
-		list.head = nil
-		list.tail = nil
-	} else {
-		list.head.next = nil
-		next.prev = nil
-		list.head = next
-	}
-	list.len--
-	return deleted
-}
-
-func deleteFromEnd(list *DoubleLinkedList) *Node {
-	if list.tail == nil {
-		return nil
-	}
-	deleted := list.tail
-	prev := list.tail.prev
-	if prev == nil {
-		list.head = nil
-		list.tail = nil
-	} else {
-		list.tail.prev = nil
-		prev.next = nil
-		list.tail = prev
-	}
-	list.len--
-	return deleted
+	return list.Len
 }

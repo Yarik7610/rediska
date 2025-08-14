@@ -21,18 +21,20 @@ type multiTypeStorage struct {
 }
 
 const (
-	TYPE_STRING = "string"
-	TYPE_LIST   = "list"
-	TYPE_STREAM = "stream"
-	TYPE_NONE   = "none"
+	TYPE_STRING     = "string"
+	TYPE_LIST       = "list"
+	TYPE_STREAM     = "stream"
+	TYPE_SORTED_SET = "zset"
+	TYPE_NONE       = "none"
 )
 
 func NewMultiTypeStorage() MultiTypeStorage {
 	return &multiTypeStorage{
 		storages: map[string]baseStorage{
-			TYPE_STRING: NewStringStorage(),
-			TYPE_LIST:   NewListStorage(),
-			TYPE_STREAM: NewStreamStorage(),
+			TYPE_STRING:     NewStringStorage(),
+			TYPE_LIST:       NewListStorage(),
+			TYPE_STREAM:     NewStreamStorage(),
+			TYPE_SORTED_SET: NewSortedSetStorage(),
 		},
 	}
 }
@@ -42,6 +44,7 @@ func (s *multiTypeStorage) Keys() []string {
 	allStorageKeys = append(allStorageKeys, s.StringStorage().Keys()...)
 	allStorageKeys = append(allStorageKeys, s.ListStorage().Keys()...)
 	allStorageKeys = append(allStorageKeys, s.StreamStorage().Keys()...)
+	allStorageKeys = append(allStorageKeys, s.SortedSetStorage().Keys()...)
 	return allStorageKeys
 }
 
@@ -52,6 +55,8 @@ func (s *multiTypeStorage) Del(key string) {
 		s.ListStorage().Del(key)
 	} else if s.StreamStorage().Has(key) {
 		s.StreamStorage().Del(key)
+	} else if s.SortedSetStorage().Has(key) {
+		s.SortedSetStorage().Del(key)
 	}
 }
 
@@ -63,6 +68,9 @@ func (s *multiTypeStorage) Type(key string) string {
 		return TYPE_LIST
 	}
 	if s.StreamStorage().Has(key) {
+		return TYPE_STREAM
+	}
+	if s.SortedSetStorage().Has(key) {
 		return TYPE_STREAM
 	}
 	return TYPE_NONE
@@ -90,4 +98,8 @@ func (s *multiTypeStorage) ListStorage() ListStorage {
 
 func (s *multiTypeStorage) StreamStorage() StreamStorage {
 	return s.storages[TYPE_STREAM].(StreamStorage)
+}
+
+func (s *multiTypeStorage) SortedSetStorage() SortedSetStorage {
+	return s.storages[TYPE_SORTED_SET].(SortedSetStorage)
 }
