@@ -28,7 +28,7 @@ func New() *List {
 }
 
 func (list *List) Insert(score float64, member string) int {
-	found, update, rank := list.search(score, member)
+	found, update, rank := list.Search(score, member)
 	if found != nil {
 		return 0
 	}
@@ -61,7 +61,7 @@ func (list *List) Insert(score float64, member string) int {
 }
 
 func (list *List) Delete(score float64, member string) int {
-	found, update, _ := list.search(score, member)
+	found, update, _ := list.Search(score, member)
 	if found == nil {
 		return 0
 	}
@@ -81,7 +81,7 @@ func (list *List) Delete(score float64, member string) int {
 	return 1
 }
 
-func (list *List) search(score float64, member string) (*Node, *[MAX_HEIGHT]*Node, *[MAX_HEIGHT]int) {
+func (list *List) Search(score float64, member string) (*Node, *[MAX_HEIGHT]*Node, *[MAX_HEIGHT]int) {
 	var found *Node
 	var update [MAX_HEIGHT]*Node
 	var rank [MAX_HEIGHT]int

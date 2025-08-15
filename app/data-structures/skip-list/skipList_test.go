@@ -38,7 +38,7 @@ func TestSkipList(t *testing.T) {
 		assert.Equal(t, 1, list.Head.Tower[0].Tower[0].Span[0])
 		assert.Nil(t, cur.Tower[0])
 
-		_, _, rank := list.search(15, "c")
+		_, _, rank := list.Search(15, "c")
 		assert.Equal(t, 2, rank[0])
 	})
 
@@ -60,7 +60,7 @@ func TestSkipList(t *testing.T) {
 		assert.Equal(t, 1, list.Head.Tower[0].Span[0])
 		assert.Nil(t, cur.Tower[0])
 
-		_, _, rank := list.search(15, "c")
+		_, _, rank := list.Search(15, "c")
 		assert.Equal(t, 1, rank[0])
 	})
 

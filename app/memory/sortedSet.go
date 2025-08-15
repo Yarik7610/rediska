@@ -14,6 +14,7 @@ type sortedSet struct {
 type SortedSetStorage interface {
 	baseStorage
 	Zadd(key string, scores []float64, members []string) int
+	Zrank(key string, member string) int
 }
 
 type sortedSetStorage struct {
@@ -50,6 +51,24 @@ func (s *sortedSetStorage) Zadd(key string, scores []float64, members []string) 
 	}
 
 	return insertedCount
+}
+
+func (s *sortedSetStorage) Zrank(key string, member string) int {
+	s.rwMut.RLock()
+	defer s.rwMut.RUnlock()
+
+	sortedSet, ok := s.data[key]
+	if !ok {
+		return -1
+	}
+
+	score, ok := sortedSet.dict[member]
+	if !ok {
+		return -1
+	}
+
+	_, _, rank := sortedSet.skipList.Search(score, member)
+	return rank[0]
 }
 
 func (s *sortedSetStorage) Keys() []string {

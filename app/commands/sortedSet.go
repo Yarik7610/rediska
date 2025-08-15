@@ -29,6 +29,25 @@ func (c *controller) zadd(args, commandAndArgs []string) resp.Value {
 	return resp.Integer{Value: insertedCount}
 }
 
+func (c *controller) zrank(args []string) resp.Value {
+	if len(args) != 2 {
+		return resp.SimpleError{Value: "ZRANK command must have 2 args"}
+	}
+
+	sortedSetKey := args[0]
+	sortedSetMember := args[1]
+	if c.storage.KeyExistsWithOtherType(sortedSetKey, memory.TYPE_SORTED_SET) {
+		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
+	}
+
+	rank := c.storage.SortedSetStorage().Zrank(sortedSetKey, sortedSetMember)
+
+	if rank == -1 {
+		return resp.BulkString{Value: nil}
+	}
+	return resp.Integer{Value: rank}
+}
+
 func parseMembersAndScores(rawFields []string) ([]string, []float64, error) {
 	members := make([]string, 0)
 	scores := make([]float64, 0)
