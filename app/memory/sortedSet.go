@@ -14,6 +14,7 @@ type sortedSet struct {
 type SortedSetStorage interface {
 	baseStorage
 	Zadd(key string, scores []float64, members []string) int
+	Zrem(key string, members []string) int
 	Zrank(key string, member string) int
 	Zrange(key string, startIdx, stopIdx int) []string
 	Zcard(key string) int
@@ -54,6 +55,27 @@ func (s *sortedSetStorage) Zadd(key string, scores []float64, members []string) 
 	}
 
 	return insertedCount
+}
+
+func (s *sortedSetStorage) Zrem(key string, members []string) int {
+	s.rwMut.Lock()
+	defer s.rwMut.Unlock()
+
+	sortedSet, ok := s.data[key]
+	if !ok {
+		return 0
+	}
+
+	deletedCount := 0
+	for _, member := range members {
+		score, ok := sortedSet.dict[member]
+		if !ok {
+			continue
+		}
+		deletedCount += sortedSet.skipList.Delete(score, member)
+		delete(sortedSet.dict, member)
+	}
+	return deletedCount
 }
 
 func (s *sortedSetStorage) Zrank(key string, member string) int {

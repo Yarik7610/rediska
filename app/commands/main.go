@@ -162,6 +162,8 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.discard(args, conn)
 	case "ZADD":
 		return c.zadd(args, commandAndArgs)
+	case "ZREM":
+		return c.zrem(args, commandAndArgs)
 	case "ZRANK":
 		return c.zrank(args)
 	case "ZRANGE":
