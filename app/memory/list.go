@@ -78,43 +78,22 @@ func (ls *listStorage) Lrange(key string, startIdx, stopIdx int) []string {
 		return values
 	}
 
-	l := list.Len
-
-	if startIdx < 0 {
-		startIdx += l
-		if startIdx < 0 {
-			startIdx = 0
-		}
-	}
-	if stopIdx < 0 {
-		stopIdx += l
-		if stopIdx >= l {
-			stopIdx = l - 1
-		}
-	}
-
-	if stopIdx < startIdx {
+	var err error
+	startIdx, stopIdx, err = handleRangeIndexes(startIdx, stopIdx, list.Len)
+	if err != nil {
 		return values
 	}
 
-	if startIdx >= l {
-		return values
-	}
-	if stopIdx >= l {
-		stopIdx = l - 1
-	}
-
-	curNode := list.Head
-
+	cur := list.Head
 	for range startIdx {
-		curNode = curNode.Next
+		cur = cur.Next
 	}
 	for range stopIdx - startIdx + 1 {
-		if curNode == nil {
+		if cur == nil {
 			break
 		}
-		values = append(values, curNode.Val)
-		curNode = curNode.Next
+		values = append(values, cur.Val)
+		cur = cur.Next
 	}
 	return values
 }

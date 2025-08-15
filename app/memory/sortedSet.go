@@ -15,6 +15,7 @@ type SortedSetStorage interface {
 	baseStorage
 	Zadd(key string, scores []float64, members []string) int
 	Zrank(key string, member string) int
+	Zrange(key string, startIdx, stopIdx int) []string
 }
 
 type sortedSetStorage struct {
@@ -69,6 +70,38 @@ func (s *sortedSetStorage) Zrank(key string, member string) int {
 
 	_, _, rank := sortedSet.skipList.Search(score, member)
 	return rank[0]
+}
+
+func (s *sortedSetStorage) Zrange(key string, startIdx, stopIdx int) []string {
+	s.rwMut.RLock()
+	defer s.rwMut.RUnlock()
+
+	values := make([]string, 0)
+
+	sortedSet, ok := s.data[key]
+	if !ok {
+		return values
+	}
+
+	var err error
+	startIdx, stopIdx, err = handleRangeIndexes(startIdx, stopIdx, sortedSet.skipList.Len)
+	if err != nil {
+		return values
+	}
+
+	cur := sortedSet.skipList.Head
+
+	for range startIdx + 1 {
+		cur = cur.Tower[0]
+	}
+	for range stopIdx - startIdx + 1 {
+		if cur == nil {
+			break
+		}
+		values = append(values, cur.Member)
+		cur = cur.Tower[0]
+	}
+	return values
 }
 
 func (s *sortedSetStorage) Keys() []string {
