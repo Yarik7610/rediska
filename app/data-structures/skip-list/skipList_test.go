@@ -1,6 +1,7 @@
 package skiplist
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,9 +16,11 @@ func TestSkipList(t *testing.T) {
 		assert.NotNil(t, list.Head.Tower[0])
 		assert.Equal(t, "a", list.Head.Tower[0].Member)
 		assert.Equal(t, 10.0, list.Head.Tower[0].Score)
+
+		assert.Equal(t, 1, list.Head.Span[0])
 	})
 
-	t.Run("InsertMultipleSorted", func(t *testing.T) {
+	t.Run("InsertMultipleSortedAndSpanCheck", func(t *testing.T) {
 		list := New()
 		list.Insert(10, "a")
 		list.Insert(5, "b")
@@ -26,27 +29,39 @@ func TestSkipList(t *testing.T) {
 
 		cur := list.Head.Tower[0]
 		assert.Equal(t, "b", cur.Member)
+		assert.Equal(t, 1, list.Head.Span[0])
 		cur = cur.Tower[0]
 		assert.Equal(t, "a", cur.Member)
+		assert.Equal(t, 1, list.Head.Tower[0].Span[0])
 		cur = cur.Tower[0]
 		assert.Equal(t, "c", cur.Member)
+		assert.Equal(t, 1, list.Head.Tower[0].Tower[0].Span[0])
 		assert.Nil(t, cur.Tower[0])
+
+		_, _, rank := list.search(15, "c")
+		assert.Equal(t, 2, rank[0])
 	})
 
-	t.Run("DeleteExisting", func(t *testing.T) {
+	t.Run("DeleteExistingAndSpanCheck", func(t *testing.T) {
 		list := New()
 		list.Insert(10, "a")
 		list.Insert(5, "b")
 		list.Insert(15, "c")
+
 		deletedCount := list.Delete(10, "a")
 		assert.Equal(t, 1, deletedCount)
 		assert.Equal(t, 2, list.Len)
 
 		cur := list.Head.Tower[0]
 		assert.Equal(t, "b", cur.Member)
+		assert.Equal(t, 1, list.Head.Span[0])
 		cur = cur.Tower[0]
 		assert.Equal(t, "c", cur.Member)
+		assert.Equal(t, 1, list.Head.Tower[0].Span[0])
 		assert.Nil(t, cur.Tower[0])
+
+		_, _, rank := list.search(15, "c")
+		assert.Equal(t, 1, rank[0])
 	})
 
 	t.Run("DeleteNonExisting", func(t *testing.T) {
@@ -70,9 +85,10 @@ func TestSkipList(t *testing.T) {
 
 	t.Run("HeightIncreases", func(t *testing.T) {
 		list := New()
-		for i := 0; i < 100; i++ {
-			list.Insert(float64(i), string(rune('a'+i)))
+		for i := range 100 {
+			list.Insert(float64(i), fmt.Sprintf("member %d", i))
 		}
 		assert.True(t, list.Height > 1)
+		assert.True(t, list.Height < MAX_HEIGHT)
 	})
 }
