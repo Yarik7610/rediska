@@ -12,6 +12,7 @@ This project is both an educational journey and a complicated challenge.
 - String data storage
 - List data storage
 - Stream data storage
+- Sorted set data storage
 - Pub/Sub messaging
 - Transactions
 - Other commands
@@ -139,6 +140,22 @@ List of commands, related to this extension:
 - XADD
 - XRANGE (with '+', '-' support)
 - XREAD (with '$' support and blocking mode)
+
+### Sorted set data storage
+
+Sorted set is data structure that stores unique values (`members`) and also these values are sorted in ascending order by their `score`.
+In original Redis, sorted set consists of hashmap and `skip list`. I also decided to create the same data structures as a challenge. The main reason to use skip list is for `fast insert, delete and search` operations.
+
+Skip list consists of multiple linked lists, that are separated by levels. Each level presents original members of our sorted set with their scores. The smallest level consists of all elements in the sorted set. But as we know, to traverse a linked list we need O(N) time. The feauture of higher levels is that the higher level we choose, the less elements it has. The gap between elements increases with level and we can traverse it faster. Sometimes, we can miss element with that approach but we can go down and find it on a lower level. Because of ascending order, we always go right and down, and such manipulations generally lead us to O(logN) time complexity.
+
+List of commands, related to this extension:
+
+- ZADD
+- ZREM
+- ZRANK
+- ZRANGE
+- ZCARD
+- ZSCORE
 
 ### Pub/Sub messaging
 
