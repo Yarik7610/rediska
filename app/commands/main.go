@@ -166,6 +166,8 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.zrank(args)
 	case "ZRANGE":
 		return c.zrange(args)
+	case "ZCARD":
+		return c.zcard(args)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}

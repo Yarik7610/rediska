@@ -74,6 +74,20 @@ func (c *controller) zrange(args []string) resp.Value {
 	return resp.CreateBulkStringArray(values...)
 }
 
+func (c *controller) zcard(args []string) resp.Value {
+	if len(args) != 1 {
+		return resp.SimpleError{Value: "ZCARD command must have 1 arg"}
+	}
+
+	sortedSetKey := args[0]
+	if c.storage.KeyExistsWithOtherType(sortedSetKey, memory.TYPE_SORTED_SET) {
+		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
+	}
+
+	card := c.storage.SortedSetStorage().Zcard(sortedSetKey)
+	return resp.Integer{Value: card}
+}
+
 func parseMembersAndScores(rawFields []string) ([]string, []float64, error) {
 	members := make([]string, 0)
 	scores := make([]float64, 0)
