@@ -88,6 +88,26 @@ func (c *controller) zcard(args []string) resp.Value {
 	return resp.Integer{Value: card}
 }
 
+func (c *controller) zscore(args []string) resp.Value {
+	if len(args) != 2 {
+		return resp.SimpleError{Value: "ZSCORE command must have 2 args"}
+	}
+
+	sortedSetKey := args[0]
+	sortedSetMember := args[1]
+	if c.storage.KeyExistsWithOtherType(sortedSetKey, memory.TYPE_SORTED_SET) {
+		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
+	}
+
+	score := c.storage.SortedSetStorage().Zscore(sortedSetKey, sortedSetMember)
+	if score == nil {
+		return resp.BulkString{Value: nil}
+	}
+
+	floatString := strconv.FormatFloat(*score, 'e', -1, 64)
+	return resp.BulkString{Value: &floatString}
+}
+
 func parseMembersAndScores(rawFields []string) ([]string, []float64, error) {
 	members := make([]string, 0)
 	scores := make([]float64, 0)
