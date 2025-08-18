@@ -190,6 +190,6 @@ List of general commands:
 
 ## Afterword
 
-This project is currently one of the biggest projects i've ever made and the biggest one written in Go. I learned and practiced a lot while coding it: tcp, concurrency, replication, RDB persistence, Stream data type, Pub/Sub pattern, gorutines, sync.Cond, sync.WaitGroup, sync.RWMutex, channels, interfaces, their native use and limitations, packages and their limitations, type assertions, error handling, designing project architecture overall.
+This project is currently one of the biggest projects i've ever made and the biggest one written in Go. I learned and practiced a lot while coding it: tcp, concurrency, replication, RDB persistence, Stream data type, Pub/Sub pattern, skip list data structure, gorutines, sync.Cond, sync.WaitGroup, sync.RWMutex, channels, interfaces, their native use and limitations, packages and their limitations, type assertions, error handling, designing project architecture overall.
 
 A Redis server was built by completing all stages of the [Codecrafters Redis course](https://app.codecrafters.io/courses/redis/overview). Thank you so much guys for such an awesome challenge)
