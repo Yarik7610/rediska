@@ -98,7 +98,7 @@ func (c *controller) bpop(commandAndArgs []string) resp.Value {
 	c.propagateWriteCommand(commandAndArgs)
 
 	if poppedValue == nil {
-		return resp.BulkString{Value: nil}
+		return resp.Array{Value: nil}
 	}
 	return resp.CreateBulkStringArray(key, *poppedValue)
 }

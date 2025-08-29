@@ -105,7 +105,7 @@ func (c *controller) xread(args []string) resp.Value {
 	}
 
 	if len(respStreamsWithEntries) == 0 {
-		return resp.BulkString{Value: nil}
+		return resp.Array{Value: nil}
 	}
 	return resp.Array{Value: respStreamsWithEntries}
 }
