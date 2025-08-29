@@ -179,6 +179,8 @@ func (c *controller) handleArrayCommand(cmd resp.Array, conn net.Conn) resp.Valu
 		return c.zscore(args)
 	case "GEOADD":
 		return c.geoadd(args, commandAndArgs)
+	case "GEOPOS":
+		return c.geopos(args)
 	default:
 		return resp.SimpleError{Value: fmt.Sprintf("unknown command '%s'", command)}
 	}

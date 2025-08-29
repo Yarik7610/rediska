@@ -31,6 +31,34 @@ func (c *controller) geoadd(args, commandAndArgs []string) resp.Value {
 	return resp.Integer{Value: insertedCount}
 }
 
+func (c *controller) geopos(args []string) resp.Value {
+	if len(args) < 2 {
+		return resp.SimpleError{Value: "GEOPOS command must have at least 2 args"}
+	}
+
+	sortedSetKey := args[0]
+	if c.storage.KeyExistsWithOtherType(sortedSetKey, memory.TYPE_SORTED_SET) {
+		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
+	}
+
+	members := args[1:]
+	multipleRESPResponses := make([]resp.Value, 0)
+	for _, member := range members {
+		score := c.storage.SortedSetStorage().Zscore(sortedSetKey, member)
+		if score == nil {
+			multipleRESPResponses = append(multipleRESPResponses, resp.Array{Value: nil})
+			continue
+		}
+
+		longitude, latitude := c.geoController.Decode(uint64(*score))
+		longitudeString := strconv.FormatFloat(longitude, 'e', geo.DECODE_PRECISION, 64)
+		latitudeString := strconv.FormatFloat(latitude, 'e', geo.DECODE_PRECISION, 64)
+		multipleRESPResponses = append(multipleRESPResponses, resp.CreateBulkStringArray(longitudeString, latitudeString))
+	}
+
+	return resp.Array{Value: multipleRESPResponses}
+}
+
 func parseLocations(rawFields []string) ([]geo.Location, error) {
 	rawEntryFieldsLen := len(rawFields)
 	if rawEntryFieldsLen%3 != 0 {
