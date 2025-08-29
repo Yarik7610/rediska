@@ -49,7 +49,7 @@ func parseLocations(rawFields []string) ([]geo.Location, error) {
 		}
 
 		if !geo.ValidLongitude(longitude) || !geo.ValidLatitude(latitude) {
-			return nil, fmt.Errorf("invalid longitude,latitude pair %d,%d", longitude, latitude)
+			return nil, fmt.Errorf("invalid longitude,latitude pair %f,%f", longitude, latitude)
 		}
 
 		locations = append(locations, geo.Location{

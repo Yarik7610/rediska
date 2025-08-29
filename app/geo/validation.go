@@ -5,5 +5,5 @@ func ValidLongitude(longitude float64) bool {
 }
 
 func ValidLatitude(latitude float64) bool {
-	return latitude <= 85.05112878 || latitude >= -85.05112878
+	return latitude <= 85.05112878 && latitude >= -85.05112878
 }
