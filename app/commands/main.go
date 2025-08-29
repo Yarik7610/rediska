@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/config"
+	"github.com/codecrafters-io/redis-starter-go/app/geo"
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/pubsub"
 	"github.com/codecrafters-io/redis-starter-go/app/replication"
@@ -24,6 +25,7 @@ type controller struct {
 	replicationController replication.BaseController
 	pubsubController      pubsub.Controller
 	transactionController transaction.Controller
+	geoController         geo.Controller
 }
 
 func NewController(
@@ -31,13 +33,16 @@ func NewController(
 	storage memory.MultiTypeStorage,
 	replicationController replication.BaseController,
 	pubsubController pubsub.Controller,
-	transactionController transaction.Controller) Controller {
+	transactionController transaction.Controller,
+	geoController geo.Controller,
+) Controller {
 	return &controller{
 		args:                  args,
 		storage:               storage,
 		replicationController: replicationController,
 		pubsubController:      pubsubController,
 		transactionController: transactionController,
+		geoController:         geoController,
 	}
 }
 

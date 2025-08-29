@@ -31,7 +31,14 @@ func newReplica(args *config.Args) Server {
 		replicationController: replication.NewReplicaController(),
 		masterConnBuffer:      make([]byte, 0),
 	}
-	r.commandController = commands.NewController(r.args, r.storage, r.replicationController, r.pubsubController, r.transactionController)
+	r.commandController = commands.NewController(
+		r.args,
+		r.storage,
+		r.replicationController,
+		r.pubsubController,
+		r.transactionController,
+		r.geoController,
+	)
 	return r
 }
 

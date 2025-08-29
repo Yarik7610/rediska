@@ -10,6 +10,7 @@ import (
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
 	"github.com/codecrafters-io/redis-starter-go/app/config"
+	"github.com/codecrafters-io/redis-starter-go/app/geo"
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/persistence/rdb"
 	"github.com/codecrafters-io/redis-starter-go/app/pubsub"
@@ -25,6 +26,7 @@ type base struct {
 	pubsubController      pubsub.Controller
 	transactionController transaction.Controller
 	commandController     commands.Controller
+	geoController         geo.Controller
 }
 
 func newBase(args *config.Args) *base {
@@ -34,6 +36,7 @@ func newBase(args *config.Args) *base {
 		respController:        resp.NewController(),
 		pubsubController:      pubsub.NewController(),
 		transactionController: transaction.NewController(),
+		geoController:         geo.NewController(),
 	}
 }
 

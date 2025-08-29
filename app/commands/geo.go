@@ -24,7 +24,7 @@ func (c *controller) geoadd(args, commandAndArgs []string) resp.Value {
 		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
 	}
 
-	scores, members := geo.ConvertToScoresAndMembersSlices(locations)
+	scores, members := convertToScoresAndMembersSlices(c.geoController, locations)
 	insertedCount := c.storage.SortedSetStorage().Zadd(sortedSetKey, scores, members)
 
 	c.propagateWriteCommand(commandAndArgs)
@@ -60,4 +60,16 @@ func parseLocations(rawFields []string) ([]geo.Location, error) {
 	}
 
 	return locations, nil
+}
+
+func convertToScoresAndMembersSlices(geoController geo.Controller, locations []geo.Location) ([]float64, []string) {
+	scores := make([]float64, 0)
+	members := make([]string, 0)
+
+	for _, location := range locations {
+		scores = append(scores, float64(geoController.Encode(location.Longitude, location.Latitude)))
+		members = append(members, location.Member)
+	}
+
+	return scores, members
 }

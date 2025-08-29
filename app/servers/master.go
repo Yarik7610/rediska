@@ -20,7 +20,14 @@ func newMaster(args *config.Args) Server {
 		base:                  newBase(args),
 		replicationController: replication.NewMasterController(),
 	}
-	m.commandController = commands.NewController(m.args, m.storage, m.replicationController, m.pubsubController, m.transactionController)
+	m.commandController = commands.NewController(
+		m.args,
+		m.storage,
+		m.replicationController,
+		m.pubsubController,
+		m.transactionController,
+		m.geoController,
+	)
 	return m
 }
 
