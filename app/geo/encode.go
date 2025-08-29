@@ -1,6 +1,6 @@
 package geo
 
-func (c controller) Encode(longitude, latitude float64) uint64 {
+func (c controller) Encode(latitude, longitude float64) uint64 {
 	// Normalize to the range [0, 2^26)
 	normalizedLongitude := 1 << BITS_PER_COORD * (longitude - MIN_LONGITUDE) / LONGITUDE_RANGE
 	normalizedLatitude := 1 << BITS_PER_COORD * (latitude - MIN_LATITUDE) / LATITUDE_RANGE

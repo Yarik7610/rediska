@@ -95,7 +95,7 @@ func convertToScoresAndMembersSlices(geoController geo.Controller, locations []g
 	members := make([]string, 0)
 
 	for _, location := range locations {
-		scores = append(scores, float64(geoController.Encode(location.Longitude, location.Latitude)))
+		scores = append(scores, float64(geoController.Encode(location.Latitude, location.Longitude)))
 		members = append(members, location.Member)
 	}
 
