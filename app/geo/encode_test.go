@@ -30,7 +30,8 @@ func TestEncode(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actualScore := c.Encode(test.latitude, test.longitude)
+		location := &Location{Longitude: test.longitude, Latitude: test.latitude}
+		actualScore := c.Encode(location)
 		assert.Equal(t, actualScore, test.expectedScore)
 	}
 }

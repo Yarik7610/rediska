@@ -1,8 +1,8 @@
 package geo
 
 type Controller interface {
-	Encode(longitude, latitude float64) uint64
-	Decode(code uint64) (float64, float64)
+	Encode(location *Location) uint64
+	Decode(code uint64) *Location
 }
 
 type controller struct{}

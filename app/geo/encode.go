@@ -1,9 +1,10 @@
 package geo
 
-func (c controller) Encode(latitude, longitude float64) uint64 {
+func (c controller) Encode(location *Location) uint64 {
 	// Normalize to the range [0, 2^26)
-	normalizedLongitude := 1 << BITS_PER_COORD * (longitude - MIN_LONGITUDE) / LONGITUDE_RANGE
-	normalizedLatitude := 1 << BITS_PER_COORD * (latitude - MIN_LATITUDE) / LATITUDE_RANGE
+	upperEncodeBoundary := 1 << BITS_PER_COORD
+	normalizedLongitude := float64(upperEncodeBoundary) * (location.Longitude - MIN_LONGITUDE) / LONGITUDE_RANGE
+	normalizedLatitude := float64(upperEncodeBoundary) * (location.Latitude - MIN_LATITUDE) / LATITUDE_RANGE
 
 	// Traverse to uint32 (not int, because normalized to [0..) to perform bit operations
 	normalizedLongitudeUint := uint32(normalizedLongitude)

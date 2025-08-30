@@ -50,9 +50,9 @@ func (c *controller) geopos(args []string) resp.Value {
 			continue
 		}
 
-		longitude, latitude := c.geoController.Decode(uint64(*score))
-		longitudeString := strconv.FormatFloat(longitude, 'e', geo.DECODE_PRECISION, 64)
-		latitudeString := strconv.FormatFloat(latitude, 'e', geo.DECODE_PRECISION, 64)
+		location := c.geoController.Decode(uint64(*score))
+		longitudeString := strconv.FormatFloat(location.Longitude, 'f', -1, 64)
+		latitudeString := strconv.FormatFloat(location.Latitude, 'f', -1, 64)
 		multipleRESPResponses = append(multipleRESPResponses, resp.CreateBulkStringArray(longitudeString, latitudeString))
 	}
 
@@ -95,7 +95,7 @@ func convertToScoresAndMembersSlices(geoController geo.Controller, locations []g
 	members := make([]string, 0)
 
 	for _, location := range locations {
-		scores = append(scores, float64(geoController.Encode(location.Latitude, location.Longitude)))
+		scores = append(scores, float64(geoController.Encode(&location)))
 		members = append(members, location.Member)
 	}
 
