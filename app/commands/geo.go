@@ -59,6 +59,36 @@ func (c *controller) geopos(args []string) resp.Value {
 	return resp.Array{Value: multipleRESPResponses}
 }
 
+func (c *controller) geodist(args []string) resp.Value {
+	if len(args) != 3 {
+		return resp.SimpleError{Value: "GEODIST command must have 3 args"}
+	}
+
+	sortedSetKey := args[0]
+	if c.storage.KeyExistsWithOtherType(sortedSetKey, memory.TYPE_SORTED_SET) {
+		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
+	}
+
+	member1 := args[1]
+	member2 := args[2]
+
+	score1 := c.storage.SortedSetStorage().Zscore(sortedSetKey, member1)
+	if score1 == nil {
+		return resp.BulkString{Value: nil}
+	}
+	score2 := c.storage.SortedSetStorage().Zscore(sortedSetKey, member2)
+	if score2 == nil {
+		return resp.BulkString{Value: nil}
+	}
+
+	location1 := c.geoController.Decode(uint64(*score1))
+	location2 := c.geoController.Decode(uint64(*score2))
+
+	distanceMeters := c.geoController.Dist(location1, location2)
+	distanceMetersString := fmt.Sprintf("%.4f", distanceMeters)
+	return resp.BulkString{Value: &distanceMetersString}
+}
+
 func parseLocations(rawFields []string) ([]geo.Location, error) {
 	rawEntryFieldsLen := len(rawFields)
 	if rawEntryFieldsLen%3 != 0 {
