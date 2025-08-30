@@ -1,7 +1,6 @@
 package geo
 
 import (
-	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,9 +32,7 @@ func TestDecode(t *testing.T) {
 	for _, test := range tests {
 		location := c.Decode(test.expectedScore)
 
-		latDiff := math.Abs(location.Latitude - test.latitude)
-		lonDiff := math.Abs(location.Longitude - test.longitude)
-
-		assert.True(t, latDiff < MAX_DECODE_DIFFERENCE && lonDiff < MAX_DECODE_DIFFERENCE)
+		assert.InDelta(t, location.Latitude, test.latitude, MAX_DECODE_DIFFERENCE)
+		assert.InDelta(t, location.Longitude, test.longitude, MAX_DECODE_DIFFERENCE)
 	}
 }
