@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"strconv"
 	"sync"
 
 	skiplist "github.com/codecrafters-io/redis-starter-go/app/data-structures/skip-list"
@@ -16,7 +17,7 @@ type SortedSetStorage interface {
 	Zadd(key string, scores []float64, members []string) int
 	Zrem(key string, members []string) int
 	Zrank(key string, member string) int
-	Zrange(key string, startIdx, stopIdx int) []string
+	Zrange(key string, startIdx, stopIdx int, withScores bool) []string
 	Zcard(key string) int
 	Zscore(key string, member string) *float64
 }
@@ -96,7 +97,7 @@ func (s *sortedSetStorage) Zrank(key string, member string) int {
 	return rank[0]
 }
 
-func (s *sortedSetStorage) Zrange(key string, startIdx, stopIdx int) []string {
+func (s *sortedSetStorage) Zrange(key string, startIdx, stopIdx int, withScores bool) []string {
 	s.rwMut.RLock()
 	defer s.rwMut.RUnlock()
 
@@ -123,6 +124,9 @@ func (s *sortedSetStorage) Zrange(key string, startIdx, stopIdx int) []string {
 			break
 		}
 		values = append(values, cur.Member)
+		if withScores {
+			values = append(values, strconv.FormatFloat(cur.Score, 'f', -1, 64))
+		}
 		cur = cur.Tower[0]
 	}
 	return values

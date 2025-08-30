@@ -31,13 +31,18 @@ func TestSortedSetStorageZrangeAndZrank(t *testing.T) {
 	ss.Zadd("myzset", []float64{1, 2, 3}, []string{"a", "b", "c"})
 
 	t.Run("zrange full", func(t *testing.T) {
-		values := ss.Zrange("myzset", 0, -1)
+		values := ss.Zrange("myzset", 0, -1, false)
 		assert.Equal(t, []string{"a", "b", "c"}, values)
 	})
 
 	t.Run("zrange partial", func(t *testing.T) {
-		values := ss.Zrange("myzset", 1, 2)
+		values := ss.Zrange("myzset", 1, 2, false)
 		assert.Equal(t, []string{"b", "c"}, values)
+	})
+
+	t.Run("zrange withscores", func(t *testing.T) {
+		values := ss.Zrange("myzset", 1, 2, true)
+		assert.Equal(t, []string{"b", "2", "c", "3"}, values)
 	})
 
 	t.Run("zrank existing", func(t *testing.T) {
@@ -107,6 +112,6 @@ func TestSortedSetStorageConcurrentAccess(t *testing.T) {
 	wg.Wait()
 
 	assert.Equal(t, workers, ss.Zcard("concurrent_zset"))
-	values := ss.Zrange("concurrent_zset", 0, -1)
+	values := ss.Zrange("concurrent_zset", 0, -1, false)
 	assert.Len(t, values, workers)
 }

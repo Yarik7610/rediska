@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/geo"
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
@@ -89,6 +90,34 @@ func (c *controller) geodist(args []string) resp.Value {
 	return resp.BulkString{Value: &distanceMetersString}
 }
 
+func (c *controller) geosearch(args []string) resp.Value {
+	if len(args) < 7 {
+		return resp.SimpleError{Value: "GEOSEARCH command must have at least 7 args"}
+	}
+
+	sortedSetKey := args[0]
+	if c.storage.KeyExistsWithOtherType(sortedSetKey, memory.TYPE_SORTED_SET) {
+		return resp.SimpleError{Value: "WRONGTYPE Operation against a key holding the wrong kind of value"}
+	}
+
+	searchOptions, err := traverseGeosearchOptions(args[1:])
+	if err != nil {
+		return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
+	}
+
+	searchStartLocation := &geo.Location{
+		Latitude:  searchOptions.FromLonLatOption.Latitude,
+		Longitude: searchOptions.FromLonLatOption.Longitude,
+	}
+	searchStartPointScore := c.geoController.Encode(searchStartLocation)
+	// for _, member := range c.storage.SortedSetStorage().Zrange(sortedSetKey, 0, -1, true) {
+
+	// }
+	fmt.Println(searchStartPointScore)
+
+	return resp.BulkString{Value: nil}
+}
+
 func parseLocations(rawFields []string) ([]geo.Location, error) {
 	rawEntryFieldsLen := len(rawFields)
 	if rawEntryFieldsLen%3 != 0 {
@@ -130,4 +159,56 @@ func convertToScoresAndMembersSlices(geoController geo.Controller, locations []g
 	}
 
 	return scores, members
+}
+
+func traverseGeosearchOptions(args []string) (*geo.SearchOptions, error) {
+	geoSearchOptions := &geo.SearchOptions{}
+
+	l := len(args)
+	for i := 0; i < l; {
+		option := strings.ToUpper(args[i])
+		switch option {
+		case "FROMLONLAT":
+			if i+2 >= l {
+				return nil, fmt.Errorf("Wrong argumnets count for FROMLONLAT option, need 2")
+			}
+
+			longitude, err := strconv.ParseFloat(args[i+1], 64)
+			if err != nil {
+				return nil, fmt.Errorf("wrong location longitude format: %v", err)
+			}
+			latitude, err := strconv.ParseFloat(args[i+2], 64)
+			if err != nil {
+				return nil, fmt.Errorf("wrong location latitude format: %v", err)
+			}
+
+			geoSearchOptions.FromLonLatOption = &geo.FromLonLatOption{
+				Longitude: longitude,
+				Latitude:  latitude,
+			}
+			i += 3
+		case "BYRADIUS":
+			if i+2 >= l {
+				return nil, fmt.Errorf("Wrong argumnets count for BYRADIUS option, need 2")
+			}
+
+			radius, err := strconv.ParseFloat(args[i+1], 64)
+			if err != nil {
+				return nil, fmt.Errorf("wrong radius value format: %v", err)
+			}
+			unit := args[i+2]
+			if strings.ToLower(unit) != "m" {
+				return nil, fmt.Errorf("wrong radius unit format: %v, only %q is accepted", err, "m")
+			}
+
+			geoSearchOptions.ByRadiusOption = &geo.ByRadiusOption{
+				Value: radius,
+				Unit:  unit,
+			}
+			i += 3
+		default:
+			return nil, fmt.Errorf("wrong option detected: %v", option)
+		}
+	}
+	return geoSearchOptions, nil
 }

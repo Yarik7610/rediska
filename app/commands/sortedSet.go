@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/codecrafters-io/redis-starter-go/app/resp"
@@ -66,8 +67,8 @@ func (c *controller) zrank(args []string) resp.Value {
 }
 
 func (c *controller) zrange(args []string) resp.Value {
-	if len(args) != 3 {
-		return resp.SimpleError{Value: "ZRANGE command must have 3 args"}
+	if len(args) < 3 {
+		return resp.SimpleError{Value: "ZRANGE command must have at least 3 args"}
 	}
 
 	key := args[0]
@@ -77,6 +78,14 @@ func (c *controller) zrange(args []string) resp.Value {
 
 	startIdx := args[1]
 	stopIdx := args[2]
+	withScores := false
+	if len(args) == 4 {
+		if strings.ToUpper(args[3]) == "WITHSCORES" {
+			withScores = true
+		} else {
+			return resp.SimpleError{Value: fmt.Sprintf("ZRANGE wrong last argument, expected WITHSCORES, got %s", args[3])}
+		}
+	}
 
 	startIdxAtoi, err := strconv.Atoi(startIdx)
 	if err != nil {
@@ -87,7 +96,7 @@ func (c *controller) zrange(args []string) resp.Value {
 		return resp.SimpleError{Value: fmt.Sprintf("ZRANGE command stop atoi error: %v", err)}
 	}
 
-	values := c.storage.SortedSetStorage().Zrange(key, startIdxAtoi, stopIdxAtoi)
+	values := c.storage.SortedSetStorage().Zrange(key, startIdxAtoi, stopIdxAtoi, withScores)
 	return resp.CreateBulkStringArray(values...)
 }
 

@@ -153,7 +153,7 @@ List of commands, related to this extension:
 - ZADD
 - ZREM
 - ZRANK
-- ZRANGE
+- ZRANGE (with optional WITHSCORES argument)
 - ZCARD
 - ZSCORE
 
