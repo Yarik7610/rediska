@@ -185,7 +185,7 @@ List of commands, related to this extension:
 
 Geospatial commands help to store coordinates and to find a distance between 2 points on Earth. They are based on Sorted set data storage.
 
-The most interesting, but the complicated parts to implement are encoding and decoding coordinate longitude and latitude to one value (it will be the score of member, referencing to the sorted set). But, the idea is simple, we take our longitude and latitude in binary formats and `interleave the with each other`. No less diffucult is the distance between 2 locations (points). It is a math thing, so it it cool, but i don't understand it quite well :) (but i've tried my best to make code readable)
+The most interesting, but the complicated parts to implement are encoding and decoding coordinate longitude and latitude to one value (it will be the score of member, referencing to the sorted set). But, the idea is simple, we take our longitude and latitude in binary formats and `interleave them with each other`. No less diffucult is the distance between 2 locations (points). It is a math thing, so it it cool, but i don't understand it quite well :) (but i've tried my best to make code readable)
 
 List of commands, related to this extension:
 
