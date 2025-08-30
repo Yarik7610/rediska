@@ -109,13 +109,26 @@ func (c *controller) geosearch(args []string) resp.Value {
 		Latitude:  searchOptions.FromLonLatOption.Latitude,
 		Longitude: searchOptions.FromLonLatOption.Longitude,
 	}
-	searchStartPointScore := c.geoController.Encode(searchStartLocation)
-	// for _, member := range c.storage.SortedSetStorage().Zrange(sortedSetKey, 0, -1, true) {
 
-	// }
-	fmt.Println(searchStartPointScore)
+	sortedSetKeysWithScores := c.storage.SortedSetStorage().Zrange(sortedSetKey, 0, -1, true)
 
-	return resp.BulkString{Value: nil}
+	inRangeMembers := make([]string, 0)
+	for i := 0; i < len(sortedSetKeysWithScores); i += 2 {
+		member := sortedSetKeysWithScores[i]
+		score, _ := strconv.ParseFloat(sortedSetKeysWithScores[i+1], 64)
+		location := c.geoController.Decode(uint64(score))
+		location.Member = member
+
+		ok, err := c.geoController.InArea(searchOptions, searchStartLocation, location)
+		if err != nil {
+			return resp.SimpleError{Value: fmt.Sprintf("ERR %s", err)}
+		}
+		if ok {
+			inRangeMembers = append(inRangeMembers, member)
+		}
+	}
+
+	return resp.CreateBulkStringArray(inRangeMembers...)
 }
 
 func parseLocations(rawFields []string) ([]geo.Location, error) {
@@ -162,7 +175,7 @@ func convertToScoresAndMembersSlices(geoController geo.Controller, locations []g
 }
 
 func traverseGeosearchOptions(args []string) (*geo.SearchOptions, error) {
-	geoSearchOptions := &geo.SearchOptions{}
+	geoSearchOptions := geo.NewSearchOptions()
 
 	l := len(args)
 	for i := 0; i < l; {
@@ -170,9 +183,8 @@ func traverseGeosearchOptions(args []string) (*geo.SearchOptions, error) {
 		switch option {
 		case "FROMLONLAT":
 			if i+2 >= l {
-				return nil, fmt.Errorf("Wrong argumnets count for FROMLONLAT option, need 2")
+				return nil, fmt.Errorf("wrong argumnets count for FROMLONLAT option, need 2")
 			}
-
 			longitude, err := strconv.ParseFloat(args[i+1], 64)
 			if err != nil {
 				return nil, fmt.Errorf("wrong location longitude format: %v", err)
@@ -188,23 +200,27 @@ func traverseGeosearchOptions(args []string) (*geo.SearchOptions, error) {
 			}
 			i += 3
 		case "BYRADIUS":
-			if i+2 >= l {
-				return nil, fmt.Errorf("Wrong argumnets count for BYRADIUS option, need 2")
+			if geoSearchOptions.Shape != -1 {
+				return nil, fmt.Errorf("shape is already set")
 			}
 
+			if i+2 >= l {
+				return nil, fmt.Errorf("wrong argumnets count for BYRADIUS option, need 2")
+			}
 			radius, err := strconv.ParseFloat(args[i+1], 64)
 			if err != nil {
 				return nil, fmt.Errorf("wrong radius value format: %v", err)
 			}
 			unit := args[i+2]
-			if strings.ToLower(unit) != "m" {
-				return nil, fmt.Errorf("wrong radius unit format: %v, only %q is accepted", err, "m")
+			if !geo.ValidRangeUnit(unit) {
+				return nil, fmt.Errorf("wrong radius unit format: %v", err)
 			}
 
 			geoSearchOptions.ByRadiusOption = &geo.ByRadiusOption{
 				Value: radius,
 				Unit:  unit,
 			}
+			geoSearchOptions.Shape = geo.RADIUS_SHAPE
 			i += 3
 		default:
 			return nil, fmt.Errorf("wrong option detected: %v", option)
