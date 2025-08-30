@@ -15,6 +15,7 @@ This project is both an educational journey and a complicated challenge.
 - Sorted set data storage
 - Pub/Sub messaging
 - Transactions
+- Geospatial commands
 - Other commands
 
 ## How to run
@@ -124,7 +125,7 @@ Represents key-value map where key is a string and value is a doubly linked list
 
 List of commands, related to this extension:
 
-- RPUSH / LPUSH
+- RPUSH / LPUSH (with many values)
 - RPOP / LPOP
 - LLEN
 - LRANGE
@@ -150,8 +151,8 @@ Skip list consists of multiple linked lists, that are separated by levels. Each 
 
 List of commands, related to this extension:
 
-- ZADD
-- ZREM
+- ZADD (with many members)
+- ZREM (with many members)
 - ZRANK
 - ZRANGE (with optional WITHSCORES argument)
 - ZCARD
@@ -180,6 +181,19 @@ List of commands, related to this extension:
 - EXEC
 - DISCARD
 
+### Geospatial commands
+
+Geospatial commands help to store coordinates and to find a distance between 2 points on Earth. They are based on Sorted set data storage.
+
+The most interesting, but the complicated parts to implement are encoding and decoding coordinate longitude and latitude to one value (it will be the score of member, referencing to the sorted set). But, the idea is simple, we take our longitude and latitude in binary formats and `interleave the with each other`. No less diffucult is the distance between 2 locations (points). It is a math thing, so it it cool, but i don't understand it quite well :) (but i've tried my best to make code readable)
+
+List of commands, related to this extension:
+
+- GEOADD (with many points in time)
+- GEOPOS
+- GEODIST
+- GEOSEARCH (by radius, with 'km', 'ft', 'm', 'mi' support)
+
 ### Other commands
 
 List of general commands:
@@ -190,6 +204,6 @@ List of general commands:
 
 ## Afterword
 
-This project is currently one of the biggest projects i've ever made and the biggest one written in Go. I learned and practiced a lot while coding it: tcp, concurrency, replication, RDB persistence, Stream data type, Pub/Sub pattern, gorutines, sync.Cond, sync.WaitGroup, sync.RWMutex, channels, interfaces, their native use and limitations, packages and their limitations, type assertions, error handling, designing project architecture overall.
+This project is currently one of the biggest projects i've ever made and the biggest one written in Go. I learned and practiced a lot while coding, both practicing new patterns, coding, designing project architecture overall.
 
 A Redis server was built by completing all stages of the [Codecrafters Redis course](https://app.codecrafters.io/courses/redis/overview). Thank you so much guys for such an awesome challenge)
