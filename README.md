@@ -190,7 +190,7 @@ The most interesting, but the complicated parts to implement are encoding and de
 List of commands, related to this extension:
 
 - GEOADD (with many points in time)
-- GEOPOS
+- GEOPOS (with many points in time)
 - GEODIST
 - GEOSEARCH (by radius, with 'km', 'ft', 'm', 'mi' support)
 
