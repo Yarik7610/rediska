@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/codecrafters-io/redis-starter-go/app/memory"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/codecrafters-io/redis-starter-go/app/memory"
 )
 
 func TestDecode(t *testing.T) {

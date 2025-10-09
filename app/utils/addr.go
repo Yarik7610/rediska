@@ -1,6 +1,8 @@
 package utils
 
-import "net"
+import (
+	"net"
+)
 
 func GetRemoteAddr(conn net.Conn) string {
 	return conn.RemoteAddr().String()
