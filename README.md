@@ -204,6 +204,6 @@ List of general commands:
 
 ## Afterword
 
-This project is currently one of the biggest projects i've ever made and the biggest one written in Go. I learned and practiced a lot while coding, both practicing new patterns, coding, designing project architecture overall.
+This project is currently one of the biggest projects i've ever made. I learned and practiced a lot while coding, both practicing new patterns, coding, designing project architecture overall.
 
 A Redis server was built by completing all stages of the [Codecrafters Redis course](https://app.codecrafters.io/courses/redis/overview). Thank you so much guys for such an awesome challenge)
